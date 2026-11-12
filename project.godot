@@ -1,0 +1,48 @@
+; 乒乓来福 v0.8 — Godot 4.7 工程配置
+; 架构：EventBus / DataManager / GameManager / ForumManager / AudioDirector
+; 表现：单一基础分辨率 + 容器弹性布局（canvas_items + expand）
+
+config_version=5
+
+[application]
+
+config/name="乒乓来福 v0.8"
+config/description="从市体校到世界第一的乒乓球生涯模拟 · 文字内核 + 极简几何表现"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://scripts/autoload/EventBus.gd"
+DataManager="*res://scripts/autoload/DataManager.gd"
+GameManager="*res://scripts/autoload/GameManager.gd"
+ForumManager="*res://scripts/autoload/ForumManager.gd"
+AudioDirector="*res://scripts/autoload/AudioDirector.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/window_width_override=1440
+window/size/window_height_override=810
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=true
+theme/default_font_subpixel_positioning=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.949, 0.937, 0.914, 1)
