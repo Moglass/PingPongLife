@@ -11,10 +11,12 @@ func _ready() -> void:
 	await get_tree().process_frame
 	GameManager.new_career("陈默", "prodigy")
 	main._enter_game()
-	for i in range(40):
-		GameManager.p.ap = 3
-		GameManager.train("tech", "fh")
-		GameManager.advance_week()
+	# v0.81：跑时间流，2 倍速 7 秒 ≈ 14 天
+	TimeManager.set_active(true)
+	TimeManager.set_speed(2)
+	await get_tree().create_timer(7.0).timeout
+	TimeManager.set_speed(0)
+	print("[PORTRAIT] 时间流后 第%d周 周%d 体力%.0f" % [GameManager.p.week, GameManager.p.day, GameManager.p.stamina_cur])
 	GameManager.p.record["matches"] = 24
 	GameManager.p.record["wins"] = 17
 	GameManager.p.record["champions"] = 2

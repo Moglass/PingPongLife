@@ -154,6 +154,93 @@ func identity() -> Dictionary:
 
 # ---------------------------------------------------------------- 周循环
 
+const DAYS_PER_WEEK := 7
+
+## v0.81 时间流的一天：执行当天排程 → 伤病倒计时 → 日期推进 → 事件判定
+## 返回 should_pause/pause_reason，由 TimeManager 决定是否刹停。
+func advance_day() -> Dictionary:
+	if phase != Phase.CAREER:
+		return {}
+	var events: Array[String] = []
+	var should_pause := false
+	var reason := ""
+
+	var task := _scheduled_task(p.day)
+	if task == "" or task == "rest":
+		_recover_day()
+		if task == "study":
+			p.record["study"] = int(p.record.get("study", 0)) + 1
+	elif p.injury_weeks > 0 or p.stamina_cur < 28.0:
+		_recover_day()
+		events.append("身体撑不住，这一天改成休息。")
+	else:
+		var tk := _weakest_tech() if task == "tech" else ""
+		var r := career.train(p, task, tk)
+		# 时间流下每天只练一小节，补回大部分消耗，否则两天就趴下
+		p.stamina_cur = clampf(p.stamina_cur + 7.5, 0.0, 100.0)
+		events.append(str(r.get("text", "")))
+		p.record["trains"] = int(p.record.get("trains", 0)) + 1
+		match task:
+			"tech": p.record["tech_sessions"] = int(p.record.get("tech_sessions", 0)) + 1
+			"fit": p.record["fit_sessions"] = int(p.record.get("fit_sessions", 0)) + 1
+			"psy": p.record["psy_sessions"] = int(p.record.get("psy_sessions", 0)) + 1
+			"tac": p.record["tac_sessions"] = int(p.record.get("tac_sessions", 0)) + 1
+
+	# 伤病按天倒计时，7 天折一周
+	if p.injury_weeks > 0:
+		p.injury_days += 1
+		if p.injury_days >= DAYS_PER_WEEK:
+			p.injury_days = 0
+			p.injury_weeks -= 1
+
+	# 日期推进
+	p.day += 1
+	if p.day > DAYS_PER_WEEK:
+		p.day = 1
+		var wk := advance_week()
+		if not wk.is_empty():
+			events.append("第 %d 周开始。" % p.week)
+
+	# 随机事件：每天小概率（按月均 1–2 次），触发就刹车
+	if pending_event.is_empty() and rng.randf() < 0.045:
+		var ev := event_pool.pick_for(p, week_major)
+		if not ev.is_empty():
+			pending_event = ev
+			should_pause = true
+			reason = "有事发生"
+
+	# 体力保护
+	if p.stamina_cur < 20.0 and not should_pause:
+		should_pause = true
+		reason = "体力见底"
+		events.append("体力低于 20%，时间自动暂停。")
+
+	for e in events:
+		if str(e) != "":
+			_push_feed(str(e))
+	EventBus.day_advanced.emit(p.day, p.week, p.year)
+	return {"events": events, "should_pause": should_pause, "pause_reason": reason}
+
+func _scheduled_task(d: int) -> String:
+	var i := clampi(d - 1, 0, 6)
+	if i < p.schedule.size():
+		return str(p.schedule[i])
+	return "rest"
+
+func _recover_day() -> void:
+	p.stamina_cur = clampf(p.stamina_cur + 9.0, 0.0, 100.0)
+	p.fatigue = clampf(p.fatigue - 4.0, 0.0, 100.0)
+
+func _weakest_tech() -> String:
+	var best := "fh"
+	var low := 999.0
+	for k in PlayerStats.TECH_KEYS:
+		var v := p.get_tech(k)
+		if v < low:
+			low = v
+			best = k
+	return best
+
 func advance_week() -> Dictionary:
 	if phase != Phase.CAREER:
 		return {}
@@ -201,8 +288,7 @@ func advance_week() -> Dictionary:
 		for f in flavor.slice(0, 1):
 			events.append("论坛：" + str(f.get("title", "")))
 
-	# 随机事件：大赛周不打扰
-	pending_event = event_pool.pick_for(p, week_major)
+	# 随机事件改由「日推进」按概率触发（v0.81：按月而非按周，避免刷屏）
 
 	# 排名与舆论涟漪
 	update_ranking()

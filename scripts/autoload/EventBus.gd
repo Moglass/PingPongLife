@@ -5,6 +5,8 @@ extends Node
 
 # ---- 时间与阶段 ----
 signal week_started(week: int, year: int)
+signal day_advanced(day: int, week: int, year: int)
+
 signal week_settled(report: Dictionary)
 signal season_changed(year: int)
 signal stage_changed(stage_index: int, stage_name: String)

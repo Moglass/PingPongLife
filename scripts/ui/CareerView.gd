@@ -1,6 +1,7 @@
 extends Control
 ## 日常页：左（身体与技术）/ 中（本周行动 + 周报流）/ 右（论坛热帖）。
 
+var _week_label: Label = null
 var main: Control
 
 func setup(m: Control) -> void:
@@ -65,7 +66,8 @@ func _build_portrait() -> void:
 
 	# 行动
 	var head := UIKit.hbox(8)
-	var wk_l := UIKit.label("第 %d 周" % p.week, 19, UIKit.INK)
+	var wk_l := UIKit.label("第 %d 周 · %s" % [p.week, ["周一","周二","周三","周四","周五","周六","周日"][clampi(p.day - 1, 0, 6)]], 19, UIKit.INK)
+	_week_label = wk_l
 	wk_l.custom_minimum_size = Vector2(0, 28)
 	head.add_child(wk_l)
 	head.add_child(UIKit.hfill())

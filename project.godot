@@ -18,6 +18,7 @@ EventBus="*res://scripts/autoload/EventBus.gd"
 DataManager="*res://scripts/autoload/DataManager.gd"
 GameManager="*res://scripts/autoload/GameManager.gd"
 ForumManager="*res://scripts/autoload/ForumManager.gd"
+TimeManager="*res://scripts/autoload/TimeManager.gd"
 AudioDirector="*res://scripts/autoload/AudioDirector.gd"
 
 [display]

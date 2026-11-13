@@ -16,6 +16,41 @@ import io
 import os
 import re
 import sys
+import time
+
+# 建筑号：每次导出都会变，用来让老用户自动跳出缓存
+BUILD_TAG_PLACEHOLDER = "__BUILD_TAG__"
+
+SW_SYNC_JS = """		<script>
+/* 版本自愈：Service Worker 会把 index.html 一起缓存住，导致玩家永远看到旧壳子。
+   这里在加载前比对构建号，发现新版本就注销 SW、清空 CacheStorage、强制重载一次。
+   首次访问只记录不清除，避免多下一次 10MB。 */
+(function () {
+	var BUILD = "__BUILD_TAG__";
+	var KEY = "ppl_build_tag";
+	try {
+		var seen = localStorage.getItem(KEY);
+		if (seen && seen !== BUILD) {
+			localStorage.setItem(KEY, BUILD);
+			var jobs = [];
+			if ("serviceWorker" in navigator) {
+				jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+					return Promise.all(rs.map(function (r) { return r.unregister(); }));
+				}));
+			}
+			if (window.caches) {
+				jobs.push(caches.keys().then(function (ks) {
+					return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+				}));
+			}
+			Promise.all(jobs).then(function () { location.reload(); }, function () { location.reload(); });
+			return;
+		}
+		localStorage.setItem(KEY, BUILD);
+	} catch (e) {}
+})();
+</script>
+"""
 
 HEAD_META = """		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 		<meta name="apple-mobile-web-app-capable" content="yes">
@@ -242,6 +277,14 @@ def patch(root: str) -> None:
     # 1) lang
     s = s.replace('<html lang="en">', '<html lang="zh-CN">', 1)
 
+    # 1.5) 版本自愈脚本（放在最前，早于引擎脚本）
+    tag = str(int(time.time()))
+    if "ppl_build_tag" not in s:
+        js = SW_SYNC_JS.replace(BUILD_TAG_PLACEHOLDER, tag)
+        s = s.replace("</head>", js + "\t</head>", 1)
+    else:
+        s = re.sub(r'var BUILD = "[^"]*";', 'var BUILD = "%s";' % tag, s, count=1)
+
     # 2) viewport + apple meta
     s = re.sub(r'\t*<meta name="viewport"[^>]*>', HEAD_META, s, count=1)
 
@@ -268,6 +311,15 @@ def patch(root: str) -> None:
     # 6) 404 兜底（Pages 子路径直接访问时回到首页）
     fallback = io.open(page, encoding="utf-8").read()
     io.open(os.path.join(root, "404.html"), "w", encoding="utf-8", newline="\n").write(fallback)
+
+    # 6.5) 把 index.html 从 SW 预缓存里摘掉，否则玩家永远拿到旧壳子
+    sw_path = os.path.join(root, "index.service.worker.js")
+    if os.path.exists(sw_path):
+        sw = io.open(sw_path, encoding="utf-8").read()
+        if '"index.html",' in sw:
+            sw = sw.replace('"index.html",', "", 1)
+            io.open(sw_path, "w", encoding="utf-8", newline="\n").write(sw)
+            print("[patch] service worker 不再缓存 index.html")
 
     # 7) .nojekyll：阻止 Pages 用 Jekyll 处理，否则带下划线/特殊字符的文件会被吞
     io.open(os.path.join(root, ".nojekyll"), "w", encoding="utf-8").write("")

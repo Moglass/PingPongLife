@@ -693,7 +693,7 @@ func _show_review(result: Dictionary) -> void:
 	add_child(bg)
 
 	var vb := UIKit.vbox(14)
-	var root := UIKit.margin(vb, 46, 28, 46, 24)
+	var root := UIKit.margin(vb, 16, 14, 16, 10) if UIKit.is_portrait() else UIKit.margin(vb, 46, 28, 46, 24)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
 
@@ -727,15 +727,27 @@ func _show_review(result: Dictionary) -> void:
 		ch2.add_child(UIKit.hfill())
 		tag_box.add_child(ch2)
 	head.add_child(tag_box)
-	vb.add_child(head)
-	vb.add_child(UIKit.hsep())
+
+	# 竖屏：正文进滚动区，底部按钮脱离滚动固定住。
+	# 之前整页是一个 VBox，内容一长「下一轮」就被顶到屏幕外，玩家以为卡死了。
+	var portrait := UIKit.is_portrait()
+	var flow: VBoxContainer = vb
+	if portrait:
+		var scroll := SmoothScroll.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		vb.add_child(scroll)
+		flow = UIKit.vbox(12)
+		flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(flow)
+
+	flow.add_child(head)
+	flow.add_child(UIKit.hsep())
 
 	# ---- 三栏 ----
-	var portrait := UIKit.is_portrait()
 	var cols: BoxContainer = UIKit.vbox(12) if portrait else UIKit.hbox(16)
 	if not portrait:
 		cols.alignment = BoxContainer.ALIGNMENT_BEGIN
-	vb.add_child(cols)
+	flow.add_child(cols)
 
 	var opp: Dictionary = ctx.get("opponent", {})
 	var opp_ovr := float(opp.get("ovr", 50))
@@ -810,7 +822,8 @@ func _show_review(result: Dictionary) -> void:
 	sc.add_child(UIKit.margin(sv, 18, 14, 18, 14))
 	cols.add_child(sc)
 
-	vb.add_child(UIKit.vfill())
+	if not portrait:
+		vb.add_child(UIKit.vfill())
 
 	# ---- 底部 ----
 	var settled: Dictionary = GameManager.active_run.get("settled", {})

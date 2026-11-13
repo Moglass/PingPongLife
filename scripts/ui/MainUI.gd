@@ -6,6 +6,7 @@ const CareerView := preload("res://scripts/ui/CareerView.gd")
 const TourneyView := preload("res://scripts/ui/TourneyView.gd")
 const MatchView := preload("res://scripts/ui/MatchView.gd")
 const ForumView := preload("res://scripts/ui/ForumView.gd")
+const WEEK_NAME: Array[String] = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 const ProfileView := preload("res://scripts/ui/ProfileView.gd")
 const TeamView := preload("res://scripts/ui/TeamView.gd")
 
@@ -27,6 +28,10 @@ func _ready() -> void:
 	_apply_content_scale()
 	if get_window() != null:
 		get_window().size_changed.connect(_on_window_resized)
+	if not TimeManager.day_changed.is_connected(_on_day_changed):
+		TimeManager.day_changed.connect(_on_day_changed)
+	if not TimeManager.scale_changed.is_connected(_on_scale_changed):
+		TimeManager.scale_changed.connect(_on_scale_changed)
 	_build_background()
 	_build_layout()
 	_build_overlay()
@@ -93,7 +98,7 @@ func _build_layout() -> void:
 	vb.add_child(_body)
 
 	_navbar = Control.new()
-	_navbar.custom_minimum_size = Vector2(0, 56 if UIKit.is_portrait() else 62)
+	_navbar.custom_minimum_size = Vector2(0, 60 if UIKit.is_portrait() else 62)
 	vb.add_child(_navbar)
 
 ## iPhone 灵动岛 / Android 挖孔屏安全区
@@ -110,6 +115,23 @@ func _apply_safe_area(vb: VBoxContainer) -> void:
 		var pad_bottom := Control.new()
 		pad_bottom.custom_minimum_size = Vector2(0, bottom)
 		vb.add_child(pad_bottom)
+
+## 时间流每推进一天，只刷新顶栏文字，不重建整个页面
+func _on_day_changed(d: int, w: int, _y: int) -> void:
+	if page != Page.CAREER:
+		return
+	if _topbar != null:
+		_build_topbar()
+		_update_nav_state()
+	# 正文标题也要跟，否则顶栏显示第 3 周、正文还写着第 1 周
+	if current_view != null:
+		var lbl = current_view.get("_week_label")
+		if lbl != null and is_instance_valid(lbl):
+			lbl.text = "第 %d 周 · %s" % [w, WEEK_NAME[clampi(d - 1, 0, 6)]]
+
+func _on_scale_changed(_s: float) -> void:
+	if _navbar != null:
+		_build_navbar()
 
 func _build_overlay() -> void:
 	_overlay = Control.new()
@@ -375,6 +397,7 @@ func show_page(target: Page, animate: bool = true) -> void:
 	if target == page and current_view != null:
 		return
 	page = target
+	TimeManager.set_active(target == Page.CAREER)
 	_topbar.visible = target != Page.MATCH
 	_navbar.visible = target != Page.MATCH
 	if target == Page.MATCH:
@@ -481,7 +504,7 @@ func _build_topbar_portrait() -> void:
 
 	var wk := UIKit.vbox(0)
 	wk.alignment = BoxContainer.ALIGNMENT_CENTER
-	var wkl := UIKit.dim("第 %d 周 · %d" % [p.week, p.year], 10)
+	var wkl := UIKit.dim("第 %d 周 · %s" % [p.week, WEEK_NAME[clampi(p.day - 1, 0, 6)]], 10)
 	wkl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	wkl.custom_minimum_size = Vector2(0, 13)
 	wk.add_child(wkl)
@@ -555,7 +578,7 @@ func _build_navbar() -> void:
 		c.queue_free()
 	var hb := UIKit.hbox(4 if not UIKit.is_portrait() else 0)
 	var pad := 26 if not UIKit.is_portrait() else 8
-	var m := UIKit.margin(hb, pad, 0, pad, 0)
+	var m := UIKit.margin(hb, pad, 0, pad, 6 if UIKit.is_portrait() else 0)
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_navbar.add_child(m)
 
@@ -568,15 +591,47 @@ func _build_navbar() -> void:
 	if not UIKit.is_mobile() and not UIKit.is_portrait():
 		hb.add_child(UIKit.dim("空格：下一周", 11))
 		hb.add_child(UIKit.spacer(10))
-	var next := UIKit.btn("下一周" if UIKit.is_portrait() else "下一周  →", "primary", _next_week)
-	next.custom_minimum_size = Vector2(92 if UIKit.is_portrait() else 132, 42 if UIKit.is_portrait() else 40)
-	next.name = "NextWeek"
-	hb.add_child(next)
+	hb.add_child(_build_time_controls(UIKit.is_portrait()))
+
+## v0.81 时间流控制。竖屏压成两个键（播放/暂停 + 倍速循环），横屏铺开四档。
+func _build_time_controls(compact: bool) -> Control:
+	var hb := UIKit.hbox(4)
+	if compact:
+		var running := TimeManager.time_scale > 0.0
+		var pb := UIKit.btn("停" if running else "跑", "normal" if running else "primary", func() -> void:
+			TimeManager.toggle_play()
+			_build_navbar()
+		)
+		pb.custom_minimum_size = Vector2(40, 40)
+		pb.add_theme_font_size_override("font_size", 14)
+		hb.add_child(pb)
+
+		var sb := UIKit.btn(TimeManager.speed_label(), "ghost", func() -> void:
+			var i := TimeManager.speed_index()
+			i = 2 if i <= 1 else (3 if i == 2 else 1)
+			TimeManager.set_speed(i)
+			_build_navbar()
+		)
+		sb.custom_minimum_size = Vector2(42, 40)
+		sb.add_theme_font_size_override("font_size", 13)
+		hb.add_child(sb)
+	else:
+		for i in range(TimeManager.SPEED_NAME.size()):
+			var idx := i
+			var cur := TimeManager.speed_index() == i
+			var b := UIKit.btn(TimeManager.SPEED_NAME[i], "normal" if cur else "ghost", func() -> void:
+				TimeManager.set_speed(idx)
+				_build_navbar()
+			)
+			b.custom_minimum_size = Vector2(54, 40)
+			b.add_theme_font_size_override("font_size", 13)
+			hb.add_child(b)
+	return hb
 
 func _nav_btn(text: String, target: Page) -> Button:
 	var b := UIKit.btn(text, "ghost", func() -> void: show_page(target))
 	if UIKit.is_portrait():
-		b.custom_minimum_size = Vector2(0, 42)
+		b.custom_minimum_size = Vector2(0, 40)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_font_size_override("font_size", 14)
 	else:

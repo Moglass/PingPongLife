@@ -13,6 +13,12 @@ extends Resource
 @export var stage: int = 0
 @export var year: int = 2010
 @export var week: int = 1
+## v0.81 时间流：一周 7 天，从 1 开始
+@export var day: int = 1
+## 伤病剩余天数（7 天折 1 周，与 injury_weeks 并行记录）
+@export var injury_days: int = 0
+## 周排程：周一到周日各做什么。空字符串表示自由活动。
+@export var schedule: Array[String] = ["tech", "tech", "fit", "tech", "fit", "rest", "study"]
 
 @export_group("六属性")
 @export var power: float = 10.0
@@ -292,7 +298,8 @@ func to_match_dict() -> Dictionary:
 
 func to_dict() -> Dictionary:
 	return {
-		"player_name": player_name, "age": age, "stage": stage, "year": year, "week": week,
+		"player_name": player_name, "age": age, "stage": stage, "year": year, "week": week, "day": day,
+		"injury_days": injury_days, "schedule": schedule.duplicate(),
 		"power": power, "speed": speed, "stamina": stamina, "touch": touch, "tactic": tactic, "mental": mental,
 		"tech_serve": tech_serve, "tech_receive": tech_receive, "tech_short": tech_short,
 		"tech_fh": tech_fh, "tech_bh": tech_bh, "tech_def": tech_def, "tech_foot": tech_foot,
@@ -315,6 +322,13 @@ func from_dict(d: Dictionary) -> void:
 	stage = int(d.get("stage", 0))
 	year = int(d.get("year", 2010))
 	week = int(d.get("week", 1))
+	day = int(d.get("day", 1))
+	injury_days = int(d.get("injury_days", 0))
+	var sch: Array = d.get("schedule", [])
+	if sch.size() == 7:
+		schedule.clear()
+		for x in sch:
+			schedule.append(str(x))
 	for k in ATTR_KEYS:
 		set(k, float(d.get(k, 10.0)))
 	for k in TECH_KEYS:
