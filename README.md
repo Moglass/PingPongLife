@@ -13,11 +13,11 @@ Godot 4.7 实现的乒乓球生涯模拟。**文字内核 + 极简几何表现**
 
 如果本地已有构建产物，双击 `build/windows/PingPongLife.exe`。免安装，单文件，无需 Godot。该文件不随 Git 仓库提交。
 
-**方式 B：Godot 编辑器**
+**方式 C：Godot 编辑器**
 
 用 Godot 4.7 打开 `project.godot`，按 `F5`。
 
-**方式 C：命令行**
+**方式 D：命令行**
 
 ```bash
 godot --path "D:/workbuddys/table tennis/PingPongLife"
@@ -42,6 +42,30 @@ godot --path "D:/workbuddys/table tennis/PingPongLife"
 Working Copy 官方说明：将 Xogot 项目作为 linked repository 管理并回推修改需要 Working Copy Pro。仅在手机上拉取最新版本并在 Xogot 中运行，仍按 App 内实际权限提示操作。
 
 GitHub 仓库不包含 `.godot/`、`shots/` 和 `build/`。这些是本机缓存、截图与平台构建产物；Xogot 首次打开工程时会自行生成导入缓存。
+
+---
+
+## 一·五、跨平台架构
+
+同一份 GDScript，三个出口：Windows exe / Web (WASM) / iOS（需 macOS 签名）。
+
+```
+scripts/platform/
+├── PlatformAdapter.gd   平台能力探测（唯一入口，页面不再直接写 OS.has_feature）
+├── LayoutAdapter.gd     横竖屏基准分辨率 / 安全区 / 触控尺寸
+├── InputAdapter.gd      鼠标 / 键盘 / 触控的语义统一
+├── AudioAdapter.gd      浏览器首次手势解锁音频、全局静音
+├── LifecycleAdapter.gd  切后台暂停 + 自动落盘
+└── StorageAdapter.gd    存档码（PPL1.<base64>）导出 / 导入 / 校验
+```
+
+**Web 端的三处硬性改造**
+
+1. **字体必须打包**。浏览器里没有「微软雅黑」，`SystemFont` 全部回退到无衬线默认字，中文直接变方块。现在打包霞鹜文楷子集（3946 字，889KB WOFF2），缺字才回退系统字体。
+2. **控件主题必须补全**。`LineEdit` / `CheckBox` / `TextEdit` / `PopupMenu` 在 Godot 默认主题里是白字，浅色背景上完全看不见——桌面端靠系统字体渲染差异侥幸躲过，Web 端会直接暴露。已全部显式覆盖。
+3. **存档不能靠浏览器缓存**。Web 端写在 IndexedDB，用户清缓存就没了。所以提供存档码，PC ↔ iPhone 手动迁移。
+
+比赛引擎、赛事、NPC、论坛、成就全部原样复用，**没有为 Web 重写任何逻辑**。
 
 ---
 
@@ -89,6 +113,8 @@ GitHub 仓库不包含 `.godot/`、`shots/` 和 `build/`。这些是本机缓存
 - **双打 / 混双**：`StaticDB.PAIR_TOURNEYS` 有赛事数据，但双打的跑位与默契模型没做。
 - **多周目继承**：成就跨周目保留，但天赋继承和 "上一世" 叙事没做。
 - **教练模式（退役后上帝视角）**：只到退役结局，没有后续玩法。
+- **云同步**：任务书也建议先本地 + 迁移，不让云同步拖慢上线。
+- **多线程 Web 构建**：需要 COOP/COEP 头，且 iOS Safari 对 SharedArrayBuffer 有版本门槛，第一版不做。
 
 ---
 
