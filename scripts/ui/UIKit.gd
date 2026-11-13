@@ -182,7 +182,12 @@ static func make_theme() -> Theme:
 	grab_hi.corner_radius_bottom_right = 3
 	t.set_stylebox("grabber_highlight", "VScrollBar", grab_hi)
 	t.set_stylebox("grabber_pressed", "VScrollBar", grab_hi)
-	t.set_stylebox("scroll", "VScrollBar", StyleBoxEmpty.new())
+	# ScrollContainer 算最小宽度时会把滚动条宽度加进去，导致内容比视口宽 6px。
+	# 用负的内容边距把它抵掉。
+	var track := StyleBoxEmpty.new()
+	track.content_margin_left = -4
+	track.content_margin_right = -4
+	t.set_stylebox("scroll", "VScrollBar", track)
 
 	return t
 

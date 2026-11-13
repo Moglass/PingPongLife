@@ -2,6 +2,13 @@ extends Control
 ## 日常页：左（身体与技术）/ 中（本周行动 + 周报流）/ 右（论坛热帖）。
 
 var _week_label: Label = null
+
+const WEEK_NAMES: Array[String] = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+const TASK_NAMES: Dictionary = {
+	"tech": "技术训练", "fit": "体能训练", "psy": "心理训练",
+	"tac": "战术复盘", "rest": "休息", "study": "文化课",
+}
+const TASK_ORDER: Array[String] = ["tech", "fit", "psy", "tac", "rest", "study"]
 var main: Control
 
 func setup(m: Control) -> void:
@@ -63,6 +70,7 @@ func _build_portrait() -> void:
 	tv.add_child(h2)
 	top.add_child(UIKit.margin(tv, 14, 10, 14, 10))
 	vb.add_child(top)
+	vb.add_child(_schedule_card(p))
 
 	# 行动
 	var head := UIKit.hbox(8)
@@ -297,6 +305,56 @@ func _action_card(a: Dictionary) -> Control:
 	pc.add_child(UIKit.margin(vb, 12, 10, 12, 10))
 	pc.custom_minimum_size = Vector2(0, 108)
 	return pc
+
+## 本周排程：7 行，点一下就换。时间流按这张表每天自动执行。
+func _schedule_card(p: PlayerStats) -> Control:
+	var pc := UIKit.panel()
+	var vbi := UIKit.vbox(5)
+	var head := UIKit.hbox(8)
+	head.add_child(UIKit.label("本周计划", 12, UIKit.INK_3))
+	head.add_child(UIKit.hfill())
+	head.add_child(UIKit.dim("点一下换", 10))
+	vbi.add_child(head)
+
+	for i in range(7):
+		var hb := UIKit.hbox(8)
+		var today := (p.day - 1) == i
+		var dow := UIKit.label(WEEK_NAMES[i], 12, UIKit.INK if today else UIKit.INK_3)
+		dow.custom_minimum_size = Vector2(34, 18)
+		hb.add_child(dow)
+		if today:
+			hb.add_child(UIKit.icon_dot(UIKit.RED, 5))
+		hb.add_child(UIKit.hfill())
+		var key := str(p.schedule[i]) if i < p.schedule.size() else "rest"
+		var idx := i
+		var b := UIKit.btn(str(TASK_NAMES.get(key, "自由")), "normal" if today else "ghost", func() -> void:
+			_pick_task(idx)
+		)
+		b.custom_minimum_size = Vector2(100, 32)
+		b.add_theme_font_size_override("font_size", 12)
+		hb.add_child(b)
+		vbi.add_child(hb)
+
+	pc.add_child(UIKit.margin(vbi, 14, 8, 12, 8))
+	return pc
+
+func _pick_task(i: int) -> void:
+	var body := UIKit.vbox(6)
+	body.add_child(UIKit.dim("周%s 安排什么？" % WEEK_NAMES[clampi(i, 0, 6)], 12))
+	for t in TASK_ORDER:
+		var key := t
+		var b := UIKit.btn(str(TASK_NAMES[key]), "normal", func() -> void:
+			if i < GameManager.p.schedule.size():
+				GameManager.p.schedule[i] = key
+			main._close_modal()
+			refresh()
+		)
+		b.custom_minimum_size = Vector2(0, 40)
+		b.add_theme_font_size_override("font_size", 14)
+		body.add_child(b)
+	main.modal("安排" + WEEK_NAMES[clampi(i, 0, 6)], body, [
+		{"t": "取消", "kind": "ghost", "cb": main._close_modal},
+	], false)
 
 ## 竖屏用的横向行动条：左边标题+一句描述，右边执行键，拇指一列点下来
 func _action_row(a: Dictionary) -> Control:

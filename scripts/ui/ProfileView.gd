@@ -381,7 +381,14 @@ func _gear_row(it: Dictionary, p: PlayerStats) -> Control:
 	if bool(it.get("equipped", false)):
 		h.add_child(UIKit.chip("已装备", UIKit.CYAN, true))
 	vb.add_child(h)
-	vb.add_child(UIKit.dim("%s · %s" % [_gear_stats(it), str(it.get("d", ""))], 10))
+	# 器材描述很长，竖屏下不截断会把整页撑宽
+	var desc := UIKit.dim("%s · %s" % [_gear_stats(it), str(it.get("d", ""))], 10)
+	if UIKit.is_portrait():
+		desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		desc.clip_text = true
+		desc.custom_minimum_size = Vector2(0, 15)
+	vb.add_child(desc)
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(vb)
 	hb.add_child(UIKit.hfill())
 

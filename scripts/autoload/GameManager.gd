@@ -206,14 +206,39 @@ func advance_day() -> Dictionary:
 		var ev := event_pool.pick_for(p, week_major)
 		if not ev.is_empty():
 			pending_event = ev
+			PauseManager.request("event")
 			should_pause = true
 			reason = "有事发生"
 
 	# 体力保护
-	if p.stamina_cur < 20.0 and not should_pause:
-		should_pause = true
-		reason = "体力见底"
-		events.append("体力低于 20%，时间自动暂停。")
+	if p.stamina_cur < 20.0:
+		PauseManager.request("stamina")
+		if not should_pause:
+			should_pause = true
+			reason = "体力见底"
+			events.append("体力低于 20%，时间自动暂停。")
+	elif p.stamina_cur > 32.0:
+		PauseManager.release("stamina")
+
+	# 周一：该上场，或者该报名
+	if p.day == 1:
+		if not active_run.is_empty() and not bool(active_run.get("done", false)):
+			PauseManager.request("tourney")
+			if not should_pause:
+				should_pause = true
+				reason = "该上场了"
+				events.append("本周有比赛，去赛事页。")
+		else:
+			var open_list := available_tourneys()
+			var stamped := int(p.record.get("tourney_prompt", -1))
+			var stamp := p.year * 100 + p.week
+			if not open_list.is_empty() and stamped != stamp:
+				p.record["tourney_prompt"] = stamp
+				PauseManager.request("tourney")
+				if not should_pause:
+					should_pause = true
+					reason = "本周有赛事"
+					events.append("本周有 %d 站赛事可报名。不打比赛就没有收入。" % open_list.size())
 
 	for e in events:
 		if str(e) != "":

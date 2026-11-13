@@ -600,6 +600,9 @@ func _build_time_controls(compact: bool) -> Control:
 		var running := TimeManager.time_scale > 0.0
 		var pb := UIKit.btn("停" if running else "跑", "normal" if running else "primary", func() -> void:
 			TimeManager.toggle_play()
+			# 玩家主动点继续，等于跳过当前的暂停原因（赛事提示、体力告警等）
+			if TimeManager.time_scale > 0.0:
+				PauseManager.release_all()
 			_build_navbar()
 		)
 		pb.custom_minimum_size = Vector2(40, 40)
@@ -695,6 +698,7 @@ func _show_event(card: Dictionary) -> void:
 		var idx := i
 		var pick_cb := func() -> void:
 			var r := GameManager.event_pool.apply(GameManager.p, card, idx)
+			PauseManager.release("event")
 			_close_modal()
 			_build_topbar()
 			if current_view != null and current_view.has_method("refresh"):
