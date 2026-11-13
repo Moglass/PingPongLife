@@ -36,6 +36,7 @@ func _build_portrait() -> void:
 	var vb := UIKit.vbox(12)
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var wrap := UIKit.margin(vb, 14, 12, 14, 12)
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(wrap)
 
 	# 状态条
@@ -71,14 +72,11 @@ func _build_portrait() -> void:
 	head.add_child(UIKit.dim("每次 1 AP", 10))
 	vb.add_child(head)
 
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_child(grid)
+	var acts := UIKit.vbox(8)
+	acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_child(acts)
 	for a in CareerSystem.ACTIONS:
-		grid.add_child(_action_card(a))
+		acts.add_child(_action_row(a))
 
 	# 周报
 	vb.add_child(UIKit.label("最近发生", 13, UIKit.INK_2))
@@ -293,6 +291,32 @@ func _action_card(a: Dictionary) -> Control:
 
 	pc.add_child(UIKit.margin(vb, 12, 10, 12, 10))
 	pc.custom_minimum_size = Vector2(0, 108)
+	return pc
+
+## 竖屏用的横向行动条：左边标题+一句描述，右边执行键，拇指一列点下来
+func _action_row(a: Dictionary) -> Control:
+	var pc := UIKit.panel(UIKit.WHITE, UIKit.LINE, 3)
+	var hb := UIKit.hbox(12)
+	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var left := UIKit.vbox(2)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var title := UIKit.label(str(a["n"]), 15, UIKit.INK)
+	title.custom_minimum_size = Vector2(0, 22)
+	left.add_child(title)
+	var desc := UIKit.label(str(a["d"]), 11, UIKit.INK_3)
+	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	desc.custom_minimum_size = Vector2(0, 16)
+	left.add_child(desc)
+	hb.add_child(left)
+
+	var available := GameManager.p.ap > 0 and not (GameManager.p.injury_weeks > 0 and str(a["k"]) not in ["rest", "study"])
+	var b := UIKit.btn("执行", "ghost" if not available else "normal", func() -> void: _do_action(str(a["k"])))
+	b.disabled = not available
+	b.custom_minimum_size = Vector2(66, 42)
+	hb.add_child(b)
+
+	pc.add_child(UIKit.margin(hb, 14, 10, 12, 10))
 	return pc
 
 func _do_action(key: String) -> void:

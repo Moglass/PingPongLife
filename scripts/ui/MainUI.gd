@@ -129,6 +129,9 @@ func _show_title() -> void:
 	_topbar.visible = false
 	_navbar.visible = false
 	_clear_body()
+	if UIKit.is_portrait():
+		_show_title_portrait()
+		return
 
 	var t := Control.new()
 	t.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -172,15 +175,63 @@ func _show_title() -> void:
 	var foot := UIKit.label("Godot 4.7  ·  1600×900 基准  ·  所有数值与文案均为本地生成", 12, UIKit.INK_3)
 	vb.add_child(foot)
 
+## 竖屏标题页：内容上移、字号收小、球台意象压到下半屏
+func _show_title_portrait() -> void:
+	var t := Control.new()
+	t.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_body.add_child(t)
+
+	var art := Control.new()
+	art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.draw.connect(func() -> void: _draw_table_art(art))
+	t.add_child(art)
+
+	var vb := UIKit.vbox(0)
+	var lm := UIKit.margin(vb, 46, 128, 46, 28)
+	lm.set_anchors_preset(Control.PRESET_FULL_RECT)
+	t.add_child(lm)
+
+	vb.add_child(UIKit.label("A TABLE TENNIS LIFE", 11, UIKit.INK_3))
+	vb.add_child(UIKit.spacer(8))
+	var big := UIKit.label("乒乓来福", 58, UIKit.INK)
+	big.custom_minimum_size = Vector2(0, 76)
+	vb.add_child(big)
+	vb.add_child(UIKit.label("v0.8  ·  文字内核 / 极简几何", 13, UIKit.INK_3))
+	vb.add_child(UIKit.spacer(24))
+
+	var quote := UIKit.wrap("从市体校的水泥台，到世界赛场中央那张蓝色球台。\n你这一生，会输给很多人，也会在某一天，输给时间。", 15, UIKit.INK_2)
+	vb.add_child(quote)
+	vb.add_child(UIKit.spacer(20))
+
+	# 按钮竖排，拇指可达
+	var b1 := _title_btn("开始新的生涯", "primary", _open_new_game)
+	b1.custom_minimum_size = Vector2(0, 52)
+	vb.add_child(b1)
+	if DataManager.has_save(1):
+		var bc := _title_btn("继续", "normal", _continue_game)
+		bc.custom_minimum_size = Vector2(0, 52)
+		vb.add_child(UIKit.spacer(10))
+		vb.add_child(bc)
+	var bs := _title_btn("读取存档", "ghost", _open_saves)
+	bs.custom_minimum_size = Vector2(0, 48)
+	vb.add_child(UIKit.spacer(10))
+	vb.add_child(bs)
+
+	vb.add_child(UIKit.vfill())
+	var foot := UIKit.label("Godot 4.7  ·  本地生成", 11, UIKit.INK_3)
+	vb.add_child(foot)
+
 func _draw_table_art(c: Control) -> void:
 	var w := c.size.x
 	var h := c.size.y
 	if w < 10.0 or h < 10.0:
 		return
-	var cx := w * 0.70
-	var cy := h * 0.50
-	var tw := 380.0
-	var th := 220.0
+	var portrait := UIKit.is_portrait()
+	var cx := w * 0.50 if portrait else w * 0.70
+	var cy := h * 0.54 if portrait else h * 0.50
+	var tw := 300.0 if portrait else 380.0
+	var th := 174.0 if portrait else 220.0
 	var tl := Vector2(cx - tw * 0.5, cy - th * 0.5)
 	var tr := Vector2(cx + tw * 0.5, cy - th * 0.5)
 	var br := Vector2(cx + tw * 0.62, cy + th * 0.5)

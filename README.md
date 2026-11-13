@@ -9,9 +9,18 @@ Godot 4.7 实现的乒乓球生涯模拟。**文字内核 + 极简几何表现**
 
 ## 一、如何运行
 
-**方式 A：直接玩（Windows）**
+**方式 A：浏览器 / iPhone 点开即玩**
 
-如果本地已有构建产物，双击 `build/windows/PingPongLife.exe`。免安装，单文件，无需 Godot。该文件不随 Git 仓库提交。
+👉 **https://moglass.github.io/PingPongLife/**
+
+iPhone 用 Safari 打开后，「分享 → 添加到主屏幕」，即得一个全屏 App 图标，无地址栏、无浏览器边框。
+首次加载约 10 MB（wasm 已 gzip），Wi-Fi 下 1–2 秒，4G 下 8–12 秒。
+
+同一份工程，三个出口：**Web / Windows exe / iOS（需 macOS 签名）**，逻辑零重写。
+
+**方式 B：直接玩（Windows）**
+
+双击 `build/windows/PingPongLife.exe`。免安装，单文件，无需 Godot。该文件不随 Git 仓库提交。
 
 **方式 C：Godot 编辑器**
 
@@ -23,8 +32,9 @@ Godot 4.7 实现的乒乓球生涯模拟。**文字内核 + 极简几何表现**
 godot --path "D:/workbuddys/table tennis/PingPongLife"
 ```
 
-> 字体使用系统中文字体（微软雅黑 / 苹方 / Noto），无需额外安装。
-> 存档位于 `%APPDATA%/Godot/app_userdata/乒乓来福 v0.8/`。
+> 字体：打包了霞鹜文楷子集（3946 字 / 889KB WOFF2），缺字回退系统字体。Web 端不依赖系统字体。
+> 存档：桌面在 `%APPDATA%/Godot/app_userdata/乒乓来福 v0.8/`，Web 在浏览器 IndexedDB。
+> 两者不互通，用菜单里的「导出存档（跨设备）」生成 `PPL1.` 存档码，在另一台设备粘贴导入。
 
 ### 方式 D：iPhone / iPad 使用 GitHub + Xogot
 
