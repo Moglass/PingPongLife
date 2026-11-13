@@ -2,7 +2,7 @@
 .godot/
 *.translation
 
-# 构建产物（由 GitHub Actions 或本地导出生成）
+# 构建产物（由本地导出或 GitHub Actions 生成，不入库）
 build/
 
 # 本地截图与临时文件

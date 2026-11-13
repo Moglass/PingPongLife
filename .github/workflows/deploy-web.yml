@@ -1,5 +1,9 @@
 name: Build & Deploy Web
 
+# 在 GitHub Actions 上构建 Godot Web 并发布到 GitHub Pages。
+# 构建放在 CI 而不是提交产物：Actions 访问 GitHub Release 走机房内网，
+# 比本地经代理上传 38MB wasm 稳定得多，也不会让仓库背上二进制历史。
+
 on:
   push:
     branches: [main]
@@ -15,8 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GODOT_VERSION: 4.7.2
-  GODOT_BIN: Godot_v4.7.2-stable_linux.x86_64
+  GODOT_VERSION: "4.7.2"
 
 jobs:
   build:
@@ -26,45 +29,40 @@ jobs:
 
       - name: Install Godot + export templates
         run: |
-          set -e
+          set -euo pipefail
           BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          curl -sSL -o godot.zip "${BASE}/${GODOT_BIN}.zip"
-          unzip -q godot.zip
-          chmod +x "${GODOT_BIN}"
+          mkdir -p "$HOME/godot"
+          curl -sSL --retry 5 --retry-delay 3 -o /tmp/godot.zip "${BASE}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d "$HOME/godot"
+          chmod +x "$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           mkdir -p "$HOME/.local/share/godot/export_templates"
-          curl -sSL -o templates.tpz "${BASE}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -q templates.tpz -d /tmp/tpl
+          curl -sSL --retry 5 --retry-delay 3 -o /tmp/templates.tpz "${BASE}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/tpl
           mv /tmp/tpl/templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          ls "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" | head
+          echo "--- templates ---"
+          ls "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" | grep -i web
 
       - name: Import project
         run: |
-          "./${GODOT_BIN}" --headless --path . --import || true
+          GODOT="$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          "$GODOT" --headless --path . --import || true
+          test -d .godot
 
-      - name: Headless regression tests
+      - name: Export Web
         run: |
-          "./${GODOT_BIN}" --headless --path . --script tools/test_match.gd
-
-      - name: Export Web (single-threaded, Compatibility)
-        run: |
+          set -euo pipefail
+          GODOT="$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           mkdir -p build/web
-          "./${GODOT_BIN}" --headless --path . --export-release "Web" build/web/index.html
+          "$GODOT" --headless --path . --export-release "Web" build/web/index.html
+          test -f build/web/index.wasm
+          test -f build/web/index.pck
+          python3 tools/patch_web.py build/web
+          du -sh build/web
           ls -la build/web
 
-      - name: Add cache headers + 404 fallback
-        run: |
-          cat > build/web/_headers <<'EOF'
-          /*
-            Cross-Origin-Opener-Policy: same-origin
-            Cross-Origin-Embedder-Policy: require-corp
-            X-Content-Type-Options: nosniff
-          /index.wasm
-            Content-Type: application/wasm
-            Cache-Control: public, max-age=31536000, immutable
-          /index.pck
-            Cache-Control: public, max-age=3600
-          EOF
-          cp build/web/index.html build/web/404.html
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
