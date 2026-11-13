@@ -35,25 +35,14 @@ func _ready() -> void:
 	EventBus.match_started.connect(_on_match_started)
 	EventBus.player_retired.connect(_on_retired)
 
-## 横竖屏切换基础分辨率：否则 expand 会把竖屏拉成 1600×3000，UI 缩成一条。
+## 横竖屏切换基础分辨率（细节在 LayoutAdapter）
 func _apply_content_scale() -> void:
-	var win := DisplayServer.window_get_size()
-	if win.x <= 0 or win.y <= 0:
-		return
-	var target := Vector2i(900, 1600) if win.y > win.x else Vector2i(1600, 900)
-	var w := get_window()
-	if w == null:
-		return
-	w.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	w.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	if w.content_scale_size != target:
-		w.content_scale_size = target
-		print("[UI] content_scale -> ", target)
+	LayoutAdapter.apply_content_scale()
 
 func _on_window_resized() -> void:
-	var before := UIKit.is_portrait()
+	var before := LayoutAdapter.is_portrait()
 	_apply_content_scale()
-	if before == UIKit.is_portrait():
+	if before == LayoutAdapter.is_portrait():
 		return
 	if page == Page.TITLE:
 		_show_title()
@@ -61,6 +50,13 @@ func _on_window_resized() -> void:
 	_build_topbar()
 	_build_navbar()
 	show_page(page, false)
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			LifecycleAdapter.on_focus_out()
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			LifecycleAdapter.on_focus_in()
 
 # ---------------------------------------------------------------- 基础层
 
@@ -99,14 +95,9 @@ func _build_layout() -> void:
 
 ## iPhone 灵动岛 / Android 挖孔屏安全区
 func _apply_safe_area(vb: VBoxContainer) -> void:
-	if not UIKit.is_mobile():
-		return
-	var safe := DisplayServer.get_display_safe_area()
-	var win := DisplayServer.window_get_size()
-	if win.x <= 0 or win.y <= 0:
-		return
-	var top := maxi(0, safe.position.y)
-	var bottom := maxi(0, win.y - (safe.position.y + safe.size.y))
+	var inset := LayoutAdapter.safe_area()
+	var top: int = int(inset["top"])
+	var bottom: int = int(inset["bottom"])
 	if top > 0 or bottom > 0:
 		vb.add_theme_constant_override("separation", 0)
 		var pad_top := Control.new()
@@ -228,6 +219,9 @@ func _open_new_game() -> void:
 	name_edit.add_theme_font_size_override("font_size", 18)
 	name_edit.add_theme_stylebox_override("normal", _input_style())
 	name_edit.add_theme_stylebox_override("focus", _input_style(UIKit.INK))
+	name_edit.add_theme_color_override("font_color", UIKit.INK)
+	name_edit.add_theme_color_override("caret_color", UIKit.INK)
+	name_edit.add_theme_color_override("font_placeholder_color", UIKit.INK_3)
 	body.add_child(name_edit)
 
 	body.add_child(UIKit.spacer(6))
@@ -534,6 +528,10 @@ func _next_week() -> void:
 	if not GameManager.pressure.is_empty() and int(GameManager.pressure.get("level", 0)) >= 2:
 		_show_pressure()
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton or event is InputEventScreenTouch or event is InputEventKey:
+		AudioAdapter.unlock()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE and page != Page.MATCH:
@@ -624,8 +622,72 @@ func _open_menu() -> void:
 		_open_retire()
 	))
 	body.add_child(UIKit.hsep())
-	body.add_child(UIKit.dim("所有数据保存在 user://saves", 11))
+	body.add_child(UIKit.btn("导出存档（跨设备）", "normal", func() -> void:
+		_close_modal()
+		_open_export()
+	))
+	body.add_child(UIKit.btn("导入存档码", "normal", func() -> void:
+		_close_modal()
+		_open_import()
+	))
+	body.add_child(UIKit.hsep())
+	body.add_child(UIKit.dim("存档码可复制到手机粘贴导入。所有数据保存在 user://saves", 11))
 	modal("菜单", body, [{"t": "关闭", "kind": "ghost", "cb": _close_modal}], false)
+
+# ---------------------------------------------------------------- 存档迁移
+
+func _open_export() -> void:
+	var code := StorageAdapter.export_code(1)
+	var body := UIKit.vbox(10)
+	body.add_child(UIKit.dim("复制这段文本，在另一台设备用「导入存档码」粘贴。", 12))
+	var te := TextEdit.new()
+	te.text = code
+	te.editable = false
+	te.custom_minimum_size = Vector2(600, 110)
+	te.add_theme_font_size_override("font_size", 11)
+	te.add_theme_color_override("font_color", UIKit.INK_2)
+	body.add_child(te)
+	body.add_child(UIKit.dim("长度 %s · 含全部生涯数据" % StorageAdapter.code_size(code), 10))
+
+	var copy_cb := func() -> void:
+		DisplayServer.clipboard_set(code)
+		toast("已复制到剪贴板", "ok")
+	var dl_cb := func() -> void:
+		var r := StorageAdapter.download_code(code)
+		if r == "ok" or r == "err":
+			toast("已开始下载" if r == "ok" else "下载失败", "ok" if r == "ok" else "warn")
+		else:
+			toast("已保存：" + r, "ok")
+	modal("导出存档", body, [
+		{"t": "复制", "kind": "primary", "cb": copy_cb},
+		{"t": "下载文件", "kind": "normal", "cb": dl_cb},
+		{"t": "关闭", "kind": "ghost", "cb": _close_modal},
+	], true)
+
+func _open_import() -> void:
+	var body := UIKit.vbox(10)
+	body.add_child(UIKit.dim("粘贴另一台设备导出的存档码（以 PPL1. 开头）。", 12))
+	var te := TextEdit.new()
+	te.custom_minimum_size = Vector2(600, 130)
+	te.add_theme_font_size_override("font_size", 11)
+	te.add_theme_color_override("font_color", UIKit.INK)
+	body.add_child(te)
+	body.add_child(UIKit.dim("导入会覆盖当前进度，请先导出备份。", 10))
+
+	var do_import := func() -> void:
+		var r := StorageAdapter.import_code(te.text)
+		if not bool(r.get("ok", false)):
+			toast(str(r.get("text", "导入失败")), "warn")
+			return
+		_close_modal()
+		_build_topbar()
+		_build_navbar()
+		show_page(Page.CAREER)
+		toast(str(r.get("text", "已导入")), "ok")
+	modal("导入存档码", body, [
+		{"t": "导入", "kind": "primary", "cb": do_import},
+		{"t": "取消", "kind": "ghost", "cb": _close_modal},
+	], true)
 
 # ---------------------------------------------------------------- 弹窗 / Toast
 
@@ -654,6 +716,7 @@ func modal(title_text: String, body: Control, buttons: Array = [], wide: bool = 
 		hb.alignment = BoxContainer.ALIGNMENT_END
 		for b in buttons:
 			var btn := UIKit.btn(str(b.get("t", "")), str(b.get("kind", "normal")))
+			btn.custom_minimum_size = Vector2(maxf(88.0, float(str(b.get("t", "")).length()) * 20.0 + 36.0), 40)
 			var cb: Callable = b.get("cb", Callable())
 			if cb.is_valid():
 				btn.pressed.connect(cb)

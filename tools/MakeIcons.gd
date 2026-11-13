@@ -7,7 +7,7 @@ func _ready() -> void:
 	if base == null:
 		print("no image"); get_tree().quit(); return
 	base.convert(Image.FORMAT_RGBA8)
-	var sizes := [1024, 180, 167, 152, 120, 87, 80, 76, 60, 40, 29, 20]
+	var sizes := [1024, 512, 180, 167, 152, 144, 120, 87, 80, 76, 60, 40, 29, 20]
 	for s in sizes:
 		var img := base.duplicate() as Image
 		img.resize(s, s, Image.INTERPOLATE_LANCZOS)

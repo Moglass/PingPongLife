@@ -33,20 +33,17 @@ static func fs(size: int) -> int:
 
 ## 是否运行在触屏设备上（移动端把点击目标放到 44pt 以上）
 static func is_mobile() -> bool:
-	return OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+	return PlatformAdapter.is_mobile()
 
 static func touch_size(base_h: int) -> int:
-	return maxi(base_h, 46) if is_mobile() else base_h
+	return LayoutAdapter.touch_h(base_h)
 
 ## 竖屏判定：移动端需要单栏布局
 static func is_portrait() -> bool:
-	var sz := DisplayServer.window_get_size()
-	if sz.x <= 0 or sz.y <= 0:
-		return false
-	return sz.y > sz.x
+	return LayoutAdapter.is_portrait()
 
-## 默认字体：系统中文无衬线。Windows / macOS / Android 均有，且字形完整。
-static func make_font() -> SystemFont:
+## 系统字体（缺字回退用）。Web 环境没有系统字体，只作为桌面端的兜底。
+static func make_system_font() -> SystemFont:
 	var f := SystemFont.new()
 	f.font_names = PackedStringArray([
 		"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC",
@@ -56,6 +53,17 @@ static func make_font() -> SystemFont:
 	f.allow_system_fallback = true
 	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_AUTO
 	return f
+
+## 默认字体：打包的霞鹜文楷子集（3946 字，889KB WOFF2），缺字回退系统字体。
+## 打包字体是 Web 导出的硬前提——浏览器里没有「微软雅黑」。
+static func make_font() -> Font:
+	if ResourceLoader.exists("res://assets/fonts/game.woff2"):
+		var f: FontFile = load("res://assets/fonts/game.woff2")
+		if f != null:
+			var fb: Array[Font] = [make_system_font()]
+			f.fallbacks = fb
+			return f
+	return make_system_font()
 
 static func make_theme() -> Theme:
 	var t := Theme.new()
@@ -104,6 +112,48 @@ static func make_theme() -> Theme:
 	var pb_fill := _sb(CYAN, Color.TRANSPARENT, 1, 0)
 	t.set_stylebox("background", "ProgressBar", pb_bg)
 	t.set_stylebox("fill", "ProgressBar", pb_fill)
+
+	# LineEdit（Web 上默认是白字，必须显式覆盖）
+	t.set_color("font_color", "LineEdit", INK)
+	t.set_color("font_uneditable_color", "LineEdit", INK_3)
+	t.set_color("font_placeholder_color", "LineEdit", INK_3)
+	t.set_color("caret_color", "LineEdit", INK)
+	t.set_color("selection_color", "LineEdit", CYAN_SOFT)
+	t.set_stylebox("normal", "LineEdit", _sb(WHITE, LINE, 2, 1))
+	t.set_stylebox("focus", "LineEdit", _sb(WHITE, INK, 2, 1))
+
+	# TextEdit
+	t.set_color("font_color", "TextEdit", INK)
+	t.set_color("caret_color", "TextEdit", INK)
+	t.set_color("selection_color", "TextEdit", CYAN_SOFT)
+	t.set_stylebox("normal", "TextEdit", _sb(WHITE, LINE, 2, 1))
+	t.set_stylebox("focus", "TextEdit", _sb(WHITE, INK, 2, 1))
+
+	# CheckBox / CheckButton
+	t.set_color("font_color", "CheckBox", INK_2)
+	t.set_color("font_hover_color", "CheckBox", INK)
+	t.set_color("font_pressed_color", "CheckBox", INK)
+	t.set_color("font_hover_pressed_color", "CheckBox", INK)
+	t.set_color("icon_normal_color", "CheckBox", INK_3)
+	t.set_color("icon_hover_color", "CheckBox", INK)
+	t.set_color("icon_pressed_color", "CheckBox", RED)
+	t.set_color("icon_hover_pressed_color", "CheckBox", RED)
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		t.set_stylebox(state, "CheckBox", StyleBoxEmpty.new())
+
+	# OptionButton / PopupMenu
+	t.set_color("font_color", "OptionButton", INK)
+	t.set_color("font_hover_color", "OptionButton", INK)
+	t.set_color("font_pressed_color", "OptionButton", INK)
+	t.set_color("font_color", "PopupMenu", INK)
+	t.set_color("font_hover_color", "PopupMenu", INK)
+	t.set_color("font_separator_color", "PopupMenu", INK_3)
+	t.set_stylebox("panel", "PopupMenu", _sb(WHITE, LINE, 2, 1))
+	t.set_stylebox("hover", "PopupMenu", _sb(PAPER_2, Color.TRANSPARENT, 2, 0))
+
+	# Tooltip / AcceptDialog
+	t.set_color("font_color", "TooltipLabel", PAPER)
+	t.set_stylebox("panel", "TooltipPanel", _sb(INK, INK, 2, 0))
 
 	# ScrollContainer 滚动条
 	var grab := _sb(INK_3, Color.TRANSPARENT, 2, 0)
@@ -244,17 +294,17 @@ static func btn(text: String, kind: String = "normal", cb: Callable = Callable()
 			b.add_theme_stylebox_override("normal", _sb(INK, INK, 2, 0))
 			b.add_theme_stylebox_override("hover", _sb(INK_2, INK_2, 2, 0))
 			b.add_theme_stylebox_override("pressed", _sb(Color("#000000"), Color("#000000"), 2, 0))
-			b.add_theme_color_override("font_color", PAPER)
-			b.add_theme_color_override("font_hover_color", PAPER)
-			b.add_theme_color_override("font_pressed_color", PAPER)
+			for st in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+				b.add_theme_color_override(st, PAPER)
 		"danger":
 			b.add_theme_stylebox_override("normal", _sb(RED, RED, 2, 0))
-			b.add_theme_color_override("font_color", WHITE)
-			b.add_theme_color_override("font_hover_color", WHITE)
+			for st in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+				b.add_theme_color_override(st, WHITE)
 		"ghost":
 			b.add_theme_stylebox_override("normal", _sb(Color.TRANSPARENT, Color.TRANSPARENT, 2, 0))
 			b.add_theme_stylebox_override("hover", _sb(PAPER_2, Color.TRANSPARENT, 2, 0))
-			b.add_theme_color_override("font_color", INK_2)
+			for st in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+				b.add_theme_color_override(st, INK_2)
 	if cb.is_valid():
 		b.pressed.connect(cb)
 	b.pressed.connect(func() -> void: AudioDirector.play_sfx("ui"))

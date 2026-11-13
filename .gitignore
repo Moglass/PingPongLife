@@ -1,12 +1,14 @@
+# Godot
 .godot/
-shots/
+*.translation
+
+# 构建产物（由 GitHub Actions 或本地导出生成）
 build/
+
+# 本地截图与临时文件
+shots/
 *.tmp
 *.log
-.DS_Store
-Thumbs.db
+
+# 导出缓存
 export_credentials.cfg
-*.p12
-*.mobileprovision
-*.keystore
-.env

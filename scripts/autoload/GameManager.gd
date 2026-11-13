@@ -767,6 +767,12 @@ func load_from(s: int) -> bool:
 	var state := DataManager.load_game(s)
 	if state.is_empty():
 		return false
+	return restore(state)
+
+## 从任意已解析的存档字典恢复（存档码导入也走这里）
+func restore(state: Dictionary) -> bool:
+	if state.is_empty():
+		return false
 	p = PlayerStats.new()
 	p.from_dict(state.get("player", {}))
 	world.from_dict(state.get("world", {}))

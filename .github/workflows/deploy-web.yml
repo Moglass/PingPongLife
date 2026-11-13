@@ -1,0 +1,81 @@
+name: Build & Deploy Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_BIN: Godot_v4.7.2-stable_linux.x86_64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot + export templates
+        run: |
+          set -e
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSL -o godot.zip "${BASE}/${GODOT_BIN}.zip"
+          unzip -q godot.zip
+          chmod +x "${GODOT_BIN}"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          curl -sSL -o templates.tpz "${BASE}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q templates.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          ls "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" | head
+
+      - name: Import project
+        run: |
+          "./${GODOT_BIN}" --headless --path . --import || true
+
+      - name: Headless regression tests
+        run: |
+          "./${GODOT_BIN}" --headless --path . --script tools/test_match.gd
+
+      - name: Export Web (single-threaded, Compatibility)
+        run: |
+          mkdir -p build/web
+          "./${GODOT_BIN}" --headless --path . --export-release "Web" build/web/index.html
+          ls -la build/web
+
+      - name: Add cache headers + 404 fallback
+        run: |
+          cat > build/web/_headers <<'EOF'
+          /*
+            Cross-Origin-Opener-Policy: same-origin
+            Cross-Origin-Embedder-Policy: require-corp
+            X-Content-Type-Options: nosniff
+          /index.wasm
+            Content-Type: application/wasm
+            Cache-Control: public, max-age=31536000, immutable
+          /index.pck
+            Cache-Control: public, max-age=3600
+          EOF
+          cp build/web/index.html build/web/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
