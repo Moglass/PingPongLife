@@ -84,7 +84,7 @@ static func blank_record() -> Dictionary:
 		"tac_sessions": 0, "rest_weeks": 0, "study": 0,
 		# 赛事与名次
 		"caps": 0, "goals": 0, "subs": 0,
-		"best_adult": 999, "best_youth": 999, "opp_met": 0,
+		"best_adult": 999, "best_youth": 999, "best_domestic": 999, "opp_met": 0,
 		"matches_in_year": 0, "champions_in_year": 0,
 		# 细节
 		"deuce_wins": 0, "deuce_games": 0, "perfect_games": 0,

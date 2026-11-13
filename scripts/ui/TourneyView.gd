@@ -21,16 +21,20 @@ func refresh() -> void:
 	_build()
 
 func _build() -> void:
+	var portrait := UIKit.is_portrait()
+	var pad := 14 if portrait else 26
 	var vb := UIKit.vbox(12)
-	var root := UIKit.margin(vb, 26, 18, 26, 12)
+	var root := UIKit.margin(vb, pad, 14 if portrait else 18, pad, 10 if portrait else 12)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
 
-	var head := UIKit.hbox(10)
-	head.add_child(UIKit.label("赛事", 26, UIKit.INK))
-	head.add_child(UIKit.label("%d 年 第 %d 周" % [GameManager.p.year, GameManager.p.week], 14, UIKit.INK_3))
+	var head := UIKit.hbox(8 if portrait else 10)
+	head.add_child(UIKit.label("赛事", 22 if portrait else 26, UIKit.INK))
+	head.add_child(UIKit.label("%d 年 第 %d 周" % [GameManager.p.year, GameManager.p.week], 13 if portrait else 14, UIKit.INK_3))
 	head.add_child(UIKit.hfill())
-	head.add_child(UIKit.dim("年龄不拦你报名，拦你的是资格和身体", 12))
+	# 这句在 393 宽度下会把整页撑出屏幕，竖屏去掉
+	if not portrait:
+		head.add_child(UIKit.dim("年龄不拦你报名，拦你的是资格和身体", 12))
 	vb.add_child(head)
 
 	if not GameManager.active_run.is_empty() and not bool(GameManager.active_run.get("done", false)):

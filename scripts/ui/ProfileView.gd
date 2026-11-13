@@ -27,7 +27,7 @@ func refresh() -> void:
 func _build() -> void:
 	var vb := UIKit.vbox(12)
 	var portrait := UIKit.is_portrait()
-	var root := UIKit.margin(vb, 16, 14, 16, 10) if portrait else UIKit.margin(vb, 26, 18, 26, 12)
+	var root := UIKit.margin(vb, 12, 12, 12, 8) if portrait else UIKit.margin(vb, 26, 18, 26, 12)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
 
@@ -99,8 +99,12 @@ func _mount_box(box: Control) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# ScrollContainer 会把子节点的最小宽度算进来（含滚动条占位），
+	# 不裁的话整块内容会比视口宽出几个像素。
+	scroll.clip_contents = true
 	_content.add_child(scroll)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.custom_minimum_size = Vector2(0, box.custom_minimum_size.y)
 	scroll.add_child(box)
 
 # ---------------------------------------------------------------- 概览

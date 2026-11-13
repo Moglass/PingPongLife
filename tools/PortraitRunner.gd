@@ -44,7 +44,7 @@ func _ready() -> void:
 		main.current_view.refresh()
 	await _shot("p_achv")
 
-	# 竖屏比赛页：先推进到有赛事的周
+	# 竖屏比赛页
 	main.show_page(main.Page.CAREER)
 	await get_tree().process_frame
 	var guard := 0
@@ -56,9 +56,8 @@ func _ready() -> void:
 	if not list.is_empty():
 		GameManager.enter_tournament(list[0], int(list[0].get("recommended", 0)))
 		var ctx: Dictionary = GameManager.begin_round()
-		print("[PORTRAIT] begin_round ok=", not ctx.is_empty())
 		if not ctx.is_empty():
-			await get_tree().create_timer(3.0).timeout
+			await get_tree().create_timer(2.2).timeout
 			await _shot("p_match_panel")
 
 	get_tree().quit()

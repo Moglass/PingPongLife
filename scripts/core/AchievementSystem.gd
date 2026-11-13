@@ -15,11 +15,44 @@ const TIER_NAME: Dictionary = {
 	"bronze": "铜", "silver": "银", "gold": "金", "platinum": "白金", "hidden": "隐藏",
 }
 
+## 这几个键是「名次」，越小越好。其余都是累计量，越大越好。
+## 漏掉它们会让未上榜（默认 999）直接刷掉所有排名成就。
+const LOWER_IS_BETTER: Array[String] = ["bestAdult", "bestYouth", "bestDomestic"]
+## 未上榜的哨兵值：达到它说明「还没有名次」，任何名次成就都不该成立
+const UNRANKED := 999.0
+
 var unlocked: Dictionary = {}
 
 func load_from_profile() -> void:
 	var raw: Dictionary = DataManager.profile.get("achievements", {})
 	unlocked = raw.duplicate()
+
+## 修正历史数据：早期版本把名次当累计量判（>=），导致「世界第一」在未上榜时被解锁。
+## 用 record 里的历史最佳名次复核，只撤销站不住的条目。
+func sanitize(p: PlayerStats) -> int:
+	var bad: Array[String] = []
+	for id in unlocked.keys():
+		var item: Dictionary = _by_id(str(id))
+		if item.is_empty():
+			continue
+		var k := str(item.get("k", ""))
+		if not LOWER_IS_BETTER.has(k):
+			continue
+		var cur := stat_value(p, k)
+		if cur >= UNRANKED or cur > float(item.get("v", 0)):
+			bad.append(str(id))
+	for id in bad:
+		unlocked.erase(id)
+	if not bad.is_empty():
+		save_to_profile()
+	return bad.size()
+
+var _id_index: Dictionary = {}
+func _by_id(id: String) -> Dictionary:
+	if _id_index.is_empty():
+		for a in DataManager.db.ACHV:
+			_id_index[str(a.get("id", ""))] = a
+	return _id_index.get(id, {})
 
 func save_to_profile() -> void:
 	DataManager.profile["achievements"] = unlocked.duplicate()
@@ -48,7 +81,12 @@ func check(p: PlayerStats) -> Array[Dictionary]:
 			if float(unlocked.size()) >= v:
 				newly.append(item)
 			continue
-		if stat_value(p, k) >= v:
+		var cur := stat_value(p, k)
+		if LOWER_IS_BETTER.has(k):
+			# 名次类：越小越好，且未上榜时一律不成立
+			if cur < UNRANKED and cur <= v:
+				newly.append(item)
+		elif cur >= v:
 			newly.append(item)
 	for item in newly:
 		unlocked[str(item["id"])] = Time.get_datetime_string_from_system()
@@ -81,6 +119,7 @@ func stat_value(p: PlayerStats, k: String) -> float:
 		"subs": return float(r.get("subs", 0))
 		"bestAdult": return float(r.get("best_adult", 999))
 		"bestYouth": return float(r.get("best_youth", 999))
+		"bestDomestic": return float(r.get("best_domestic", 999))
 		"oppMet": return float(r.get("opp_met", 0))
 		"matchesInYear": return float(r.get("matches_in_year", 0))
 		"championsInYear": return float(r.get("champions_in_year", 0))

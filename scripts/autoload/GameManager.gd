@@ -78,6 +78,7 @@ func new_career(player_name: String, origin: String = "sports_family") -> void:
 	gear = GearSystem.new()
 	achv = AchievementSystem.new()
 	achv.load_from_profile()
+	achv.sanitize(p)   # 清掉旧版本按错误方向判定的名次成就
 	apply_gear()
 
 	tourney_sys.rng.seed = rng.randi()
@@ -506,7 +507,11 @@ func _check_achievements() -> void:
 	for a in newly:
 		pending_achievements.append(a)
 		_push_feed("解锁成就【%s】—— %s" % [str(a.get("n", "")), str(a.get("d", ""))])
-		EventBus.toast_requested.emit("成就 · %s" % str(a.get("n", "")), "ok")
+	# 一次解锁多项时只弹一条汇总，否则十几条 toast 会把整屏盖住
+	if newly.size() == 1:
+		EventBus.toast_requested.emit("成就 · %s" % str(newly[0].get("n", "")), "ok")
+	else:
+		EventBus.toast_requested.emit("解锁 %d 项成就" % newly.size(), "ok")
 
 # ---------------------------------------------------------------- 排名
 
@@ -786,6 +791,7 @@ func restore(state: Dictionary) -> bool:
 	for m in state.get("milestones", []):
 		milestones.append(m)
 	achv.load_from_profile()
+	achv.sanitize(p)
 	ForumManager.reset()
 	for t in state.get("forum", []):
 		ForumManager.threads.append(t)

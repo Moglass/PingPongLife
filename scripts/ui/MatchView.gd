@@ -621,13 +621,16 @@ func _ask_critical() -> String:
 		if bool(c.get("cost", false)):
 			continue
 		var ck := str(c["k"])
-		var hb := UIKit.hbox(10)
+		var hb := UIKit.hbox(8 if UIKit.is_portrait() else 10)
 		var cvb := UIKit.vbox(3)
+		cvb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var cl := UIKit.label(str(c["n"]), 16)
 		cl.custom_minimum_size = Vector2(0, 22)
 		cvb.add_child(cl)
 		var dl := UIKit.dim(str(c["d"]), 11)
 		dl.custom_minimum_size = Vector2(0, 18)
+		if UIKit.is_portrait():
+			dl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cvb.add_child(dl)
 		hb.add_child(cvb)
 		hb.add_child(UIKit.hfill())
@@ -640,7 +643,7 @@ func _ask_critical() -> String:
 		body.add_child(hb)
 	vb.add_child(body)
 
-	var timer_bar := UIKit.bar(1.0, 1.0, UIKit.RED, 520, 3)
+	var timer_bar := UIKit.bar(1.0, 1.0, UIKit.RED, 300 if UIKit.is_portrait() else 520, 3)
 	vb.add_child(timer_bar)
 	var hint := UIKit.dim("6 秒内不做选择，默认「稳住」", 10)
 	vb.add_child(hint)
@@ -728,8 +731,10 @@ func _show_review(result: Dictionary) -> void:
 	vb.add_child(UIKit.hsep())
 
 	# ---- 三栏 ----
-	var cols := UIKit.hbox(16)
-	cols.alignment = BoxContainer.ALIGNMENT_BEGIN
+	var portrait := UIKit.is_portrait()
+	var cols: BoxContainer = UIKit.vbox(12) if portrait else UIKit.hbox(16)
+	if not portrait:
+		cols.alignment = BoxContainer.ALIGNMENT_BEGIN
 	vb.add_child(cols)
 
 	var opp: Dictionary = ctx.get("opponent", {})
@@ -738,11 +743,12 @@ func _show_review(result: Dictionary) -> void:
 	# 雷达
 	var rc := UIKit.panel()
 	rc.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	rc.custom_minimum_size = Vector2(300, 0)
+	rc.custom_minimum_size = Vector2(0, 0) if portrait else Vector2(300, 0)
+	rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var rv := UIKit.vbox(4)
 	rv.add_child(UIKit.label("五维对比", 12, UIKit.INK_3))
 	var radar := RadarChart.new()
-	radar.custom_minimum_size = Vector2(272, 200)
+	radar.custom_minimum_size = Vector2(300, 220) if portrait else Vector2(272, 200)
 	radar.max_value = 124.0
 	radar.set_values(GameManager.p.radar(), [opp_ovr, opp_ovr * 0.96, opp_ovr * 0.99, opp_ovr, opp_ovr * 0.94])
 	rv.add_child(radar)
@@ -756,7 +762,8 @@ func _show_review(result: Dictionary) -> void:
 	# 技术统计
 	var dc := UIKit.panel()
 	dc.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	dc.custom_minimum_size = Vector2(296, 0)
+	dc.custom_minimum_size = Vector2(0, 0) if portrait else Vector2(296, 0)
+	dc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var dv := UIKit.vbox(5)
 	dv.add_child(UIKit.label("技术统计", 12, UIKit.INK_3))
 	var st: Dictionary = engine.stats

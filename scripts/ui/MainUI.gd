@@ -87,6 +87,9 @@ func _build_layout() -> void:
 
 	_body = Control.new()
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 页面里个别滚动容器会把最小宽度算进滚动条占位，多出几像素。
+	# 裁掉，避免整页被推着横向溢出（点击区域仍在屏幕内）。
+	_body.clip_contents = true
 	vb.add_child(_body)
 
 	_navbar = Control.new()
@@ -830,6 +833,11 @@ func _close_modal() -> void:
 func toast(text: String, tone: String = "info") -> void:
 	if text.strip_edges() == "":
 		return
+	# 同时最多 3 条：之前一次解锁十几项成就，toast 会叠满整屏把界面盖死
+	while _toast_box.get_child_count() >= 3:
+		var old := _toast_box.get_child(0)
+		_toast_box.remove_child(old)
+		old.queue_free()
 	var pc := UIKit.panel(UIKit.INK, UIKit.INK, 2)
 	var col := UIKit.PAPER
 	if tone == "warn":
