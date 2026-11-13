@@ -40,7 +40,7 @@ func _build() -> void:
 	if not GameManager.active_run.is_empty() and not bool(GameManager.active_run.get("done", false)):
 		vb.add_child(_active_card())
 
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(scroll)

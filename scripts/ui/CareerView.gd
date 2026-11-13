@@ -28,7 +28,7 @@ func _build() -> void:
 ## 竖屏：单栏滚动。状态压成一条，行动 2 列，周报和论坛依次向下。
 func _build_portrait() -> void:
 	var p := GameManager.p
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
@@ -248,7 +248,7 @@ func _build_center() -> Control:
 	feed_head.add_child(UIKit.dim("记录会随周数累积", 11))
 	vb.add_child(feed_head)
 
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(scroll)

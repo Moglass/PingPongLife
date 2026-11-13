@@ -96,7 +96,7 @@ func _mount_box(box: Control) -> void:
 	if not UIKit.is_portrait():
 		_mount(box)
 		return
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	# ScrollContainer 会把子节点的最小宽度算进来（含滚动条占位），
@@ -185,9 +185,9 @@ func _mid(p: PlayerStats) -> Control:
 
 	var wc := UIKit.panel()
 	var wv := UIKit.vbox(6)
-	wv.add_child(UIKit.label("世界排名 · 前 12", 12, UIKit.INK_3))
+	wv.add_child(UIKit.label("世界排名 · 前 10", 12, UIKit.INK_3))
 	var board := GameManager.world.world_board()
-	for i in range(mini(12, board.size())):
+	for i in range(mini(10, board.size())):
 		var o: Dictionary = board[i]
 		var hb := UIKit.hbox(10)
 		var rk := UIKit.label("%2d" % (i + 1), 12, UIKit.INK_3)
@@ -338,7 +338,7 @@ func _build_gear(p: PlayerStats) -> void:
 		# 竖屏外层已经有一层滚动；内层再嵌 ScrollContainer 会因高度无人分配而塌成 0
 		right.add_child(list)
 	else:
-		var scroll := ScrollContainer.new()
+		var scroll := SmoothScroll.new()
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		scroll.add_child(list)
@@ -416,7 +416,7 @@ func _gear_row(it: Dictionary, p: PlayerStats) -> Control:
 # ---------------------------------------------------------------- 成就
 
 func _build_achievements(p: PlayerStats) -> void:
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_content.add_child(scroll)

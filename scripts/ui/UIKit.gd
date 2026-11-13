@@ -165,11 +165,23 @@ static func make_theme() -> Theme:
 	t.set_stylebox("panel", "TooltipPanel", _sb(INK, INK, 2, 0))
 
 	# ScrollContainer 滚动条
-	var grab := _sb(INK_3, Color.TRANSPARENT, 2, 0)
-	grab.content_margin_left = 3
-	grab.content_margin_right = 3
+	var grab := _sb(INK_2, Color.TRANSPARENT, 2, 0)
+	grab.content_margin_left = 2
+	grab.content_margin_right = 2
+	grab.corner_radius_top_left = 3
+	grab.corner_radius_top_right = 3
+	grab.corner_radius_bottom_left = 3
+	grab.corner_radius_bottom_right = 3
 	t.set_stylebox("grabber", "VScrollBar", grab)
-	t.set_stylebox("grabber_highlight", "VScrollBar", _sb(INK_2, Color.TRANSPARENT, 2, 0))
+	var grab_hi := _sb(INK_3, Color.TRANSPARENT, 2, 0)
+	grab_hi.content_margin_left = 2
+	grab_hi.content_margin_right = 2
+	grab_hi.corner_radius_top_left = 3
+	grab_hi.corner_radius_top_right = 3
+	grab_hi.corner_radius_bottom_left = 3
+	grab_hi.corner_radius_bottom_right = 3
+	t.set_stylebox("grabber_highlight", "VScrollBar", grab_hi)
+	t.set_stylebox("grabber_pressed", "VScrollBar", grab_hi)
 	t.set_stylebox("scroll", "VScrollBar", StyleBoxEmpty.new())
 
 	return t

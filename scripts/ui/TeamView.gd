@@ -38,7 +38,7 @@ func _build() -> void:
 
 	if UIKit.is_portrait():
 		# 竖屏单列：我方名单 → 盘次 → 对方名单，纵向滚
-		var scroll := ScrollContainer.new()
+		var scroll := SmoothScroll.new()
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		vb.add_child(scroll)

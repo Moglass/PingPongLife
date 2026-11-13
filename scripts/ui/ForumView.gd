@@ -20,7 +20,7 @@ func _build() -> void:
 	head.add_child(UIKit.dim("热度 %d · %d 条讨论" % [ForumManager.heat, ForumManager.threads.size()], 12))
 	vb.add_child(head)
 
-	var scroll := ScrollContainer.new()
+	var scroll := SmoothScroll.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(scroll)
