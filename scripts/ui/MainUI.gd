@@ -82,7 +82,7 @@ func _build_layout() -> void:
 	_apply_safe_area(vb)
 
 	_topbar = Control.new()
-	_topbar.custom_minimum_size = Vector2(0, 64 if UIKit.is_portrait() else 68)
+	_topbar.custom_minimum_size = Vector2(0, 58 if UIKit.is_portrait() else 68)
 	vb.add_child(_topbar)
 
 	_body = Control.new()
@@ -90,7 +90,7 @@ func _build_layout() -> void:
 	vb.add_child(_body)
 
 	_navbar = Control.new()
-	_navbar.custom_minimum_size = Vector2(0, 58 if UIKit.is_portrait() else 62)
+	_navbar.custom_minimum_size = Vector2(0, 56 if UIKit.is_portrait() else 62)
 	vb.add_child(_navbar)
 
 ## iPhone 灵动岛 / Android 挖孔屏安全区
@@ -188,38 +188,39 @@ func _show_title_portrait() -> void:
 	t.add_child(art)
 
 	var vb := UIKit.vbox(0)
-	var lm := UIKit.margin(vb, 46, 128, 46, 28)
+	var lm := UIKit.margin(vb, 26, 76, 26, 22)
 	lm.set_anchors_preset(Control.PRESET_FULL_RECT)
 	t.add_child(lm)
 
-	vb.add_child(UIKit.label("A TABLE TENNIS LIFE", 11, UIKit.INK_3))
-	vb.add_child(UIKit.spacer(8))
-	var big := UIKit.label("乒乓来福", 58, UIKit.INK)
-	big.custom_minimum_size = Vector2(0, 76)
+	vb.add_child(UIKit.label("A TABLE TENNIS LIFE", 10, UIKit.INK_3))
+	vb.add_child(UIKit.spacer(6))
+	var big := UIKit.label("乒乓来福", 40, UIKit.INK)
+	big.custom_minimum_size = Vector2(0, 54)
 	vb.add_child(big)
-	vb.add_child(UIKit.label("v0.8  ·  文字内核 / 极简几何", 13, UIKit.INK_3))
-	vb.add_child(UIKit.spacer(24))
-
-	var quote := UIKit.wrap("从市体校的水泥台，到世界赛场中央那张蓝色球台。\n你这一生，会输给很多人，也会在某一天，输给时间。", 15, UIKit.INK_2)
-	vb.add_child(quote)
+	vb.add_child(UIKit.spacer(2))
+	vb.add_child(UIKit.label("v0.8  ·  文字内核 / 极简几何", 12, UIKit.INK_3))
 	vb.add_child(UIKit.spacer(20))
+
+	var quote := UIKit.wrap("从市体校的水泥台，到世界赛场中央那张蓝色球台。\n你这一生，会输给很多人，也会在某一天，输给时间。", 14, UIKit.INK_2)
+	vb.add_child(quote)
+	vb.add_child(UIKit.spacer(18))
 
 	# 按钮竖排，拇指可达
 	var b1 := _title_btn("开始新的生涯", "primary", _open_new_game)
-	b1.custom_minimum_size = Vector2(0, 52)
+	b1.custom_minimum_size = Vector2(0, 50)
 	vb.add_child(b1)
 	if DataManager.has_save(1):
 		var bc := _title_btn("继续", "normal", _continue_game)
-		bc.custom_minimum_size = Vector2(0, 52)
+		bc.custom_minimum_size = Vector2(0, 50)
 		vb.add_child(UIKit.spacer(10))
 		vb.add_child(bc)
 	var bs := _title_btn("读取存档", "ghost", _open_saves)
-	bs.custom_minimum_size = Vector2(0, 48)
+	bs.custom_minimum_size = Vector2(0, 46)
 	vb.add_child(UIKit.spacer(10))
 	vb.add_child(bs)
 
 	vb.add_child(UIKit.vfill())
-	var foot := UIKit.label("Godot 4.7  ·  本地生成", 11, UIKit.INK_3)
+	var foot := UIKit.label("Godot 4.7  ·  本地生成", 10, UIKit.INK_3)
 	vb.add_child(foot)
 
 func _draw_table_art(c: Control) -> void:
@@ -230,8 +231,8 @@ func _draw_table_art(c: Control) -> void:
 	var portrait := UIKit.is_portrait()
 	var cx := w * 0.50 if portrait else w * 0.70
 	var cy := h * 0.54 if portrait else h * 0.50
-	var tw := 300.0 if portrait else 380.0
-	var th := 174.0 if portrait else 220.0
+	var tw := 258.0 if portrait else 380.0
+	var th := 150.0 if portrait else 220.0
 	var tl := Vector2(cx - tw * 0.5, cy - th * 0.5)
 	var tr := Vector2(cx + tw * 0.5, cy - th * 0.5)
 	var br := Vector2(cx + tw * 0.62, cy + th * 0.5)
@@ -266,7 +267,8 @@ func _open_new_game() -> void:
 	var name_edit := LineEdit.new()
 	name_edit.text = "陈默"
 	name_edit.max_length = 8
-	name_edit.custom_minimum_size = Vector2(320, 40)
+	name_edit.custom_minimum_size = Vector2(0, 40)
+	name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_edit.add_theme_font_size_override("font_size", 18)
 	name_edit.add_theme_stylebox_override("normal", _input_style())
 	name_edit.add_theme_stylebox_override("focus", _input_style(UIKit.INK))
@@ -291,6 +293,8 @@ func _open_new_game() -> void:
 		rb.text = "%s —— %s" % [str(o["n"]), str(o["d"])]
 		rb.button_group = group
 		rb.button_pressed = str(o["k"]) == "sports_family"
+		rb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rb.custom_minimum_size = Vector2(0, 0)
 		rb.add_theme_font_size_override("font_size", 14)
 		rb.add_theme_color_override("font_color", UIKit.INK_2)
 		rb.toggled.connect(func(on: bool) -> void:
@@ -455,34 +459,56 @@ func _build_topbar() -> void:
 ## 竖屏顶栏：只留「我是谁 / 第几周 / 钱 / AP」
 func _build_topbar_portrait() -> void:
 	var p := GameManager.p
-	var hb := UIKit.hbox(10)
-	var m := UIKit.margin(hb, 14, 0, 14, 0)
+	var hb := UIKit.hbox(8)
+	var m := UIKit.margin(hb, 14, 0, 10, 0)
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_topbar.add_child(m)
 
-	var name_v := UIKit.vbox(1)
+	var name_v := UIKit.vbox(0)
 	name_v.alignment = BoxContainer.ALIGNMENT_CENTER
-	var nm := UIKit.label(p.player_name, 17, UIKit.INK)
-	nm.custom_minimum_size = Vector2(0, 22)
+	var nm := UIKit.label(p.player_name, 16, UIKit.INK)
+	nm.custom_minimum_size = Vector2(0, 21)
 	name_v.add_child(nm)
-	name_v.add_child(UIKit.dim("%d 岁 · %s" % [p.age, str(GameManager.identity().get("n", ""))], 10))
+	var sub := UIKit.dim("%d 岁 · %s" % [p.age, str(GameManager.identity().get("n", ""))], 10)
+	sub.custom_minimum_size = Vector2(0, 13)
+	name_v.add_child(sub)
 	hb.add_child(name_v)
 
 	hb.add_child(UIKit.hfill())
-	var wk := UIKit.vbox(1)
+
+	var wk := UIKit.vbox(0)
 	wk.alignment = BoxContainer.ALIGNMENT_CENTER
-	wk.add_child(UIKit.dim("第 %d 周 / %d" % [p.week, p.year], 10))
-	var money := UIKit.label(DataManager.fmt_money(p.money), 13, UIKit.INK)
+	var wkl := UIKit.dim("第 %d 周 · %d" % [p.week, p.year], 10)
+	wkl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	wkl.custom_minimum_size = Vector2(0, 13)
+	wk.add_child(wkl)
+	var money := UIKit.label(DataManager.fmt_money(p.money), 14, UIKit.INK)
 	money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money.custom_minimum_size = Vector2(0, 19)
 	wk.add_child(money)
 	hb.add_child(wk)
 
-	hb.add_child(UIKit.spacer(4))
-	hb.add_child(_ap_dots())
-	var menu := UIKit.btn("≡", "ghost", _open_menu)
-	menu.custom_minimum_size = Vector2(46, 42)
-	menu.add_theme_font_size_override("font_size", 20)
+	hb.add_child(UIKit.spacer(2))
+	hb.add_child(_ap_dots(true))
+	var menu := _menu_btn()
+	menu.custom_minimum_size = Vector2(38, 38)
 	hb.add_child(menu)
+
+## 三横线菜单键。不用 ☰ 字符——打包字体里没有这个字形，真机会显示成方块。
+func _menu_btn() -> Button:
+	var b := UIKit.btn("", "ghost", _open_menu)
+	var lines := Control.new()
+	lines.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lines.draw.connect(func() -> void:
+		var cx := lines.size.x * 0.5
+		var cy := lines.size.y * 0.5
+		for i in range(3):
+			var y := cy - 5.0 + float(i) * 5.0
+			lines.draw_line(Vector2(cx - 7.0, y), Vector2(cx + 7.0, y), UIKit.INK_2, 1.4, true)
+	)
+	b.add_child(lines)
+	return b
 
 func _vsep() -> Control:
 	var c := Control.new()
@@ -501,9 +527,11 @@ func _top_stat(k: String, v: String) -> VBoxContainer:
 	vb.add_child(vl)
 	return vb
 
-func _ap_dots() -> Control:
+func _ap_dots(compact: bool = false) -> Control:
 	var vb := UIKit.vbox(2)
-	vb.add_child(UIKit.dim("本周 AP", 11))
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	if not compact:
+		vb.add_child(UIKit.dim("本周 AP", 11))
 	var hb := UIKit.hbox(4)
 	for i in range(GameManager.p.ap_max):
 		var c := Control.new()
@@ -522,8 +550,9 @@ func _ap_dots() -> Control:
 func _build_navbar() -> void:
 	for c in _navbar.get_children():
 		c.queue_free()
-	var hb := UIKit.hbox(4)
-	var m := UIKit.margin(hb, 26, 0, 26, 0)
+	var hb := UIKit.hbox(4 if not UIKit.is_portrait() else 0)
+	var pad := 26 if not UIKit.is_portrait() else 8
+	var m := UIKit.margin(hb, pad, 0, pad, 0)
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_navbar.add_child(m)
 
@@ -533,17 +562,22 @@ func _build_navbar() -> void:
 	hb.add_child(_nav_btn("档案", Page.PROFILE))
 	hb.add_child(UIKit.hfill())
 
-	if not UIKit.is_mobile():
+	if not UIKit.is_mobile() and not UIKit.is_portrait():
 		hb.add_child(UIKit.dim("空格：下一周", 11))
 		hb.add_child(UIKit.spacer(10))
-	var next := UIKit.btn("下一周  →", "primary", _next_week)
-	next.custom_minimum_size = Vector2(132, 40)
+	var next := UIKit.btn("下一周" if UIKit.is_portrait() else "下一周  →", "primary", _next_week)
+	next.custom_minimum_size = Vector2(92 if UIKit.is_portrait() else 132, 42 if UIKit.is_portrait() else 40)
 	next.name = "NextWeek"
 	hb.add_child(next)
 
 func _nav_btn(text: String, target: Page) -> Button:
 	var b := UIKit.btn(text, "ghost", func() -> void: show_page(target))
-	b.custom_minimum_size = Vector2(88, 38)
+	if UIKit.is_portrait():
+		b.custom_minimum_size = Vector2(0, 42)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.add_theme_font_size_override("font_size", 14)
+	else:
+		b.custom_minimum_size = Vector2(88, 38)
 	b.set_meta("target", int(target))
 	return b
 
@@ -754,7 +788,13 @@ func modal(title_text: String, body: Control, buttons: Array = [], wide: bool = 
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(cc)
 	var pc := UIKit.panel(UIKit.WHITE, UIKit.LINE, 3)
-	pc.custom_minimum_size = Vector2(560 if not wide else 680, 0)
+	# 宽度要跟着视口走：560 在 1600 横屏下是 35%，在 393 竖屏下会溢出屏幕把文字截断
+	# 竖屏基准固定 393 宽，弹窗给 360 刚好留 16pt 边距。
+	# 不用 get_viewport_rect()：Web 上它返回的是 DPR 放大后的物理像素，换算不可靠。
+	var want := 560.0 if not wide else 680.0
+	if UIKit.is_portrait():
+		want = 360.0
+	pc.custom_minimum_size = Vector2(want, 0)
 	cc.add_child(pc)
 
 	var vb := UIKit.vbox(14)
@@ -774,7 +814,8 @@ func modal(title_text: String, body: Control, buttons: Array = [], wide: bool = 
 			hb.add_child(btn)
 		vb.add_child(hb)
 
-	pc.add_child(UIKit.margin(vb, 26, 22, 26, 22))
+	var mx := 24 if not UIKit.is_portrait() else 16
+	pc.add_child(UIKit.margin(vb, mx, 20, mx, 20))
 	dim.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(dim, "modulate:a", 1.0, 0.14)

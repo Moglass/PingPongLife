@@ -4,7 +4,18 @@ extends RefCounted
 ## 页面只问「是不是竖屏 / 安全区多少」，不自己读 DisplayServer。
 
 const LANDSCAPE_SIZE := Vector2i(1600, 900)
-const PORTRAIT_SIZE := Vector2i(900, 1600)
+
+## 竖屏基准直接对齐 iPhone 的逻辑分辨率（393×852，iPhone 14/15 标准）。
+## 之前用 900×1600，在 393pt 宽的手机上整体缩到 43%，17pt 的字只剩 7pt，
+## 真机上顶栏几乎不可读。现在 1 逻辑像素 ≈ 1 CSS 像素，字号可以直接按 iOS 规范写。
+const PORTRAIT_SIZE := Vector2i(393, 852)
+
+## 竖屏下 1 逻辑像素对应的实际 CSS 像素（用于把安全区等窗口坐标换算进布局）
+static func portrait_scale() -> float:
+	var win := DisplayServer.window_get_size()
+	if win.x <= 0:
+		return 1.0
+	return float(win.x) / float(PORTRAIT_SIZE.x)
 
 static func is_portrait() -> bool:
 	var sz := DisplayServer.window_get_size()

@@ -107,8 +107,8 @@ time.sleep(38)
 shot("boot")
 
 COORDS = {
-    "start": (111, 186),
-    "confirm": (286, 500),
+    "start": (196, 272),
+    "confirm": (225, 640),
     "next": (300, 800),
 }
 

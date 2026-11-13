@@ -30,7 +30,7 @@ STYLE = """<style>
 :root {
 	--paper: #f4f1ea;
 	--ink: #1e1b17;
-	--ink2: #4a443855;
+	--ink2: #4a4438;
 	--ink3: #8a8175;
 	--red: #b03a2e;
 	--line: #d9d3c7;
@@ -83,58 +83,71 @@ body {
 #status-splash {
 	display: none;
 }
+/* 引擎内联脚本会用 style.display='block' 打开原生 progress，
+   这里必须 !important 才能压住它——否则蓝色原生态和自绘进度条会叠在一起。 */
 #status-progress {
-	display: none;
+	display: none !important;
+	width: 1px !important;
+	height: 1px !important;
+	opacity: 0;
+	pointer-events: none;
 }
 #boot {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	width: min(78vw, 340px);
+	width: min(76vw, 300px);
 	text-align: center;
 }
 #boot-brand {
-	font-size: 40px;
-	letter-spacing: 0.16em;
+	font-size: 38px;
+	letter-spacing: 0.18em;
 	color: var(--ink);
 	font-weight: 500;
 	line-height: 1.2;
+	text-indent: 0.18em;
 }
 #boot-tag {
-	margin-top: 10px;
-	font-size: 10px;
-	letter-spacing: 0.32em;
+	margin-top: 12px;
+	font-size: 9px;
+	letter-spacing: 0.34em;
 	color: var(--ink3);
 	text-transform: uppercase;
+	text-indent: 0.34em;
 }
 #boot-rule {
-	margin: 26px 0 18px;
+	margin: 30px 0 14px;
 	width: 100%;
-	height: 1px;
+	height: 3px;
 	background: var(--line);
 	position: relative;
+	overflow: hidden;
+	border-radius: 2px;
 }
 #boot-fill {
 	position: absolute;
 	left: 0;
 	top: 0;
-	height: 1px;
+	height: 3px;
 	width: 0%;
 	background: var(--red);
-	transition: width 0.25s ease-out;
+	border-radius: 2px;
+	transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #boot-pct {
-	font-size: 12px;
-	color: var(--ink3);
+	font-size: 13px;
+	color: var(--ink2);
 	font-variant-numeric: tabular-nums;
-	letter-spacing: 0.06em;
+	letter-spacing: 0.08em;
+	height: 18px;
 }
 #boot-hint {
-	margin-top: 22px;
+	margin-top: 20px;
 	font-size: 11px;
-	line-height: 1.7;
+	line-height: 1.8;
 	color: var(--ink3);
-	max-width: 260px;
+	max-width: 240px;
+	min-height: 38px;
 }
 #status-notice {
 	background: #fff;
@@ -192,8 +205,10 @@ BRIDGE_JS = """		<script>
 				var secs = (Date.now() - started) / 1000;
 				if (p >= 100) {
 					hint.textContent = '进入球馆';
-				} else if (secs > 12) {
-					hint.textContent = '首次加载约 10 MB，正在解压引擎';
+				} else if (p < 30) {
+					hint.textContent = '正在下载引擎';
+				} else if (secs > 10) {
+					hint.textContent = '首次加载约 10 MB，之后就快了';
 				} else {
 					hint.textContent = '正在装载球台';
 				}

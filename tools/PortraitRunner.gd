@@ -2,7 +2,7 @@ extends Node
 ## 竖屏适配验证：把窗口压成 480x900，截日常页。
 
 func _ready() -> void:
-	DisplayServer.window_set_size(Vector2i(480, 900))
+	DisplayServer.window_set_size(Vector2i(393, 852))
 	await get_tree().process_frame
 	await get_tree().create_timer(0.4).timeout
 

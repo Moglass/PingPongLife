@@ -44,7 +44,7 @@ func _build_portrait() -> void:
 	var tv := UIKit.vbox(6)
 	var h1 := UIKit.hbox(10)
 	var d := p.derive()
-	h1.add_child(UIKit.label("%.1f" % float(d["ovr"]), 34, UIKit.INK))
+	h1.add_child(UIKit.label("%.1f" % float(d["ovr"]), 30, UIKit.INK))
 	var f := p.form_label()
 	h1.add_child(UIKit.chip(str(f["t"]), Color(str(f["c"])), false))
 	h1.add_child(UIKit.hfill())
@@ -65,8 +65,8 @@ func _build_portrait() -> void:
 
 	# 行动
 	var head := UIKit.hbox(8)
-	var wk_l := UIKit.label("第 %d 周" % p.week, 20, UIKit.INK)
-	wk_l.custom_minimum_size = Vector2(0, 30)
+	var wk_l := UIKit.label("第 %d 周" % p.week, 19, UIKit.INK)
+	wk_l.custom_minimum_size = Vector2(0, 28)
 	head.add_child(wk_l)
 	head.add_child(UIKit.hfill())
 	head.add_child(UIKit.dim("每次 1 AP", 10))
@@ -95,9 +95,12 @@ func _build_portrait() -> void:
 	vb.add_child(UIKit.label("论坛", 13, UIKit.INK_2))
 	for t in ForumManager.latest(3):
 		vb.add_child(_thread_card(t))
+	var go_row := UIKit.hbox(0)
 	var go := UIKit.btn("进入论坛  →", "ghost", func() -> void: main.show_page(main.Page.FORUM))
-	go.custom_minimum_size = Vector2(0, 44)
-	vb.add_child(go)
+	go.custom_minimum_size = Vector2(120, 44)
+	go_row.add_child(go)
+	go_row.add_child(UIKit.hfill())
+	vb.add_child(go_row)
 
 # ---------------------------------------------------------------- 左栏
 
@@ -301,22 +304,22 @@ func _action_row(a: Dictionary) -> Control:
 
 	var left := UIKit.vbox(2)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var title := UIKit.label(str(a["n"]), 15, UIKit.INK)
+	var title := UIKit.label(str(a["n"]), 16, UIKit.INK)
 	title.custom_minimum_size = Vector2(0, 22)
 	left.add_child(title)
-	var desc := UIKit.label(str(a["d"]), 11, UIKit.INK_3)
+	var desc := UIKit.label(str(a["d"]), 12, UIKit.INK_3)
 	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	desc.custom_minimum_size = Vector2(0, 16)
+	desc.custom_minimum_size = Vector2(0, 17)
 	left.add_child(desc)
 	hb.add_child(left)
 
 	var available := GameManager.p.ap > 0 and not (GameManager.p.injury_weeks > 0 and str(a["k"]) not in ["rest", "study"])
 	var b := UIKit.btn("执行", "ghost" if not available else "normal", func() -> void: _do_action(str(a["k"])))
 	b.disabled = not available
-	b.custom_minimum_size = Vector2(66, 42)
+	b.custom_minimum_size = Vector2(64, 40)
 	hb.add_child(b)
 
-	pc.add_child(UIKit.margin(hb, 14, 10, 12, 10))
+	pc.add_child(UIKit.margin(hb, 14, 11, 12, 11))
 	return pc
 
 func _do_action(key: String) -> void:
