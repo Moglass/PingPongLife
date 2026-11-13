@@ -36,19 +36,34 @@ func _build() -> void:
 
 	vb.add_child(UIKit.hsep())
 
-	var cols := UIKit.hbox(20)
-	cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_child(cols)
-	cols.add_child(_roster(run, true))
-	cols.add_child(_center(run, started))
-	cols.add_child(_roster(run, false))
+	if UIKit.is_portrait():
+		# 竖屏单列：我方名单 → 盘次 → 对方名单，纵向滚
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		vb.add_child(scroll)
+		var col := UIKit.vbox(12)
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(col)
+		col.add_child(_roster(run, true))
+		col.add_child(_center(run, started))
+		col.add_child(_roster(run, false))
+	else:
+		var cols := UIKit.hbox(20)
+		cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		vb.add_child(cols)
+		cols.add_child(_roster(run, true))
+		cols.add_child(_center(run, started))
+		cols.add_child(_roster(run, false))
 
 func _roster(run: Dictionary, mine: bool) -> Control:
 	var side := "my" if mine else "opp"
 	var team: Array = run.get("my_team" if mine else "opp_team", [])
 	var order: Array = run.get("my_order" if mine else "opp_order", [0, 1, 2])
 	var vb := UIKit.vbox(8)
-	vb.custom_minimum_size = Vector2(280, 0)
+	if not UIKit.is_portrait():
+		vb.custom_minimum_size = Vector2(280, 0)
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	vb.add_child(UIKit.label("我方" if mine else "对方", 12, UIKit.INK_3))
 	for pos in range(order.size()):

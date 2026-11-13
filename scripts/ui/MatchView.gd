@@ -102,25 +102,27 @@ func _build() -> void:
 	add_child(_dim_layer)
 
 func _build_scoreboard() -> Control:
-	var hb := UIKit.hbox(18)
+	var portrait := UIKit.is_portrait()
+	var gap := 8 if portrait else 18
+	var hb := UIKit.hbox(gap)
 
 	# 左：玩家
 	var left := UIKit.vbox(2)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.alignment = BoxContainer.ALIGNMENT_CENTER
-	_name_a = UIKit.label(GameManager.p.player_name, 18, UIKit.INK)
+	_name_a = UIKit.label(GameManager.p.player_name, 15 if portrait else 18, UIKit.INK)
 	_name_a.custom_minimum_size = Vector2(0, 24)
 	left.add_child(_name_a)
 	left.add_child(UIKit.dim("你 · Ovr %.0f" % GameManager.p.ovr(), 11))
 
 	# 中：比分
 	var center := UIKit.vbox(0)
-	center.custom_minimum_size = Vector2(190, 0)
+	center.custom_minimum_size = Vector2(126 if portrait else 190, 0)
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	_game_label = UIKit.label("局 0 : 0", 12, UIKit.INK_3)
 	_game_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center.add_child(_game_label)
-	_score_label = UIKit.label("0 : 0", 44, UIKit.INK)
+	_score_label = UIKit.label("0 : 0", 34 if portrait else 44, UIKit.INK)
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center.add_child(_score_label)
 
@@ -129,7 +131,7 @@ func _build_scoreboard() -> Control:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	var opp: Dictionary = ctx.get("opponent", {})
-	_name_b = UIKit.label(str(opp.get("name", "对手")), 18, UIKit.INK)
+	_name_b = UIKit.label(str(opp.get("name", "对手")), 15 if portrait else 18, UIKit.INK)
 	_name_b.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_name_b.custom_minimum_size = Vector2(0, 24)
 	right.add_child(_name_b)
@@ -150,10 +152,11 @@ func _build_scoreboard() -> Control:
 	hb.add_child(left)
 	hb.add_child(center)
 	hb.add_child(right)
-	hb.add_child(meta)
+	if not portrait:
+		hb.add_child(meta)
 
-	var m := UIKit.margin(hb, 4, 8, 4, 8)
-	m.custom_minimum_size = Vector2(0, 76)
+	var m := UIKit.margin(hb, 4, 6 if portrait else 8, 4, 6 if portrait else 8)
+	m.custom_minimum_size = Vector2(0, 62 if portrait else 76)
 	return m
 
 func _build_ticker(parent: Control, left: bool) -> VBoxContainer:
@@ -424,9 +427,17 @@ func _show_entry() -> void:
 	_entry_layer.add_child(bg)
 
 	var vb := UIKit.vbox(14)
-	vb.set_anchors_preset(Control.PRESET_CENTER)
-	vb.position = Vector2(-380, -120)
-	_entry_layer.add_child(vb)
+	if UIKit.is_portrait():
+		# 竖屏用真正的居中容器；原来的 position 偏移是按 760 宽算的，竖屏会偏出左侧
+		var cc := CenterContainer.new()
+		cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_entry_layer.add_child(cc)
+		cc.add_child(UIKit.margin(vb, 24, 0, 24, 0))
+	else:
+		vb.set_anchors_preset(Control.PRESET_CENTER)
+		vb.position = Vector2(-380, -120)
+		_entry_layer.add_child(vb)
 
 	var tour := str(ctx.get("tourney", ""))
 	var rnd := str(ctx.get("round_name", ""))
@@ -436,8 +447,10 @@ func _show_entry() -> void:
 
 	var opp: Dictionary = ctx.get("opponent", {})
 	var intro := _entry_text(opp)
-	var t := UIKit.wrap(intro, 26, UIKit.INK)
-	t.custom_minimum_size = Vector2(760, 0)
+	var portrait := UIKit.is_portrait()
+	var t := UIKit.wrap(intro, 19 if portrait else 26, UIKit.INK)
+	if not portrait:
+		t.custom_minimum_size = Vector2(760, 0)
 	vb.add_child(t)
 
 	if speed == MatchEngine.Speed.IMMERSIVE:
@@ -476,17 +489,29 @@ func _ask_tactic_first() -> void:
 	var weak: Array = opp.get("weakness", [])
 	body.add_child(UIKit.dim("对手弱点：" + (", ".join(_weak_names(weak)) if not weak.is_empty() else "无明显短板"), 12))
 
+	var portrait := UIKit.is_portrait()
 	var picked := false
 	for t in MatchEngine.TACTICS:
 		var key := str(t)
 		var hit := _tactic_hits(key, weak)
-		var hb := UIKit.hbox(10)
+		var hb := UIKit.hbox(8 if portrait else 10)
 		var tvb := UIKit.vbox(2)
-		tvb.add_child(UIKit.label(str(MatchEngine.TACTIC_NAMES.get(key, key)), 15))
-		tvb.add_child(UIKit.dim(_tactic_desc(key), 11))
+		tvb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name_row := UIKit.hbox(6)
+		name_row.add_child(UIKit.label(str(MatchEngine.TACTIC_NAMES.get(key, key)), 15))
+		if hit and portrait:
+			# 竖屏放不下整块 chip，压成一个红点
+			name_row.add_child(UIKit.icon_dot(UIKit.RED, 6))
+		name_row.add_child(UIKit.hfill())
+		tvb.add_child(name_row)
+		var dsc := UIKit.dim(_tactic_desc(key), 11)
+		if portrait:
+			dsc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			dsc.custom_minimum_size = Vector2(0, 16)
+		tvb.add_child(dsc)
 		hb.add_child(tvb)
 		hb.add_child(UIKit.hfill())
-		if hit:
+		if hit and not portrait:
 			hb.add_child(UIKit.chip("命中弱点", UIKit.RED, false))
 		var pick_cb := func() -> void:
 			tactic = key
@@ -494,8 +519,9 @@ func _ask_tactic_first() -> void:
 			layer.queue_free()
 			_comment.clear()
 			_comment.append_text("[color=#8a8175]战术：%s[/color]" % str(MatchEngine.TACTIC_NAMES.get(key, key)))
-		var b := UIKit.btn("用这套", "normal" if key != "target_bh" else "primary", pick_cb)
-		b.custom_minimum_size = Vector2(78, 32)
+		var b := UIKit.btn("选" if portrait else "用这套", "normal" if key != "target_bh" else "primary", pick_cb)
+		b.custom_minimum_size = Vector2(44 if portrait else 78, 34 if portrait else 32)
+		b.add_theme_font_size_override("font_size", 13 if portrait else 15)
 		hb.add_child(b)
 		body.add_child(hb)
 
@@ -518,7 +544,7 @@ func _panel_layer(title_text: String) -> Dictionary:
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(cc)
 	var pc := UIKit.panel(UIKit.WHITE, UIKit.LINE, 3)
-	pc.custom_minimum_size = Vector2(560, 0)
+	pc.custom_minimum_size = Vector2(360, 0) if UIKit.is_portrait() else Vector2(560, 0)
 	cc.add_child(pc)
 	var vb := UIKit.vbox(12)
 	vb.add_child(UIKit.label(title_text, 20, UIKit.INK))
@@ -564,7 +590,7 @@ func _ask_critical() -> String:
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(cc)
 	var pc := UIKit.panel(UIKit.WHITE, UIKit.RED, 3)
-	pc.custom_minimum_size = Vector2(600, 0)
+	pc.custom_minimum_size = Vector2(364, 0) if UIKit.is_portrait() else Vector2(600, 0)
 	cc.add_child(pc)
 
 	var vb := UIKit.vbox(12)

@@ -42,6 +42,15 @@ static func touch_size(base_h: int) -> int:
 static func is_portrait() -> bool:
 	return LayoutAdapter.is_portrait()
 
+## 自绘控件（雷达图等）必须拿到同一份打包字体。
+## 不能直接用 ThemeDB.fallback_font —— Web 上那是无中文字形的默认字体，会画成豆腐块。
+static var _font_cache: Font = null
+
+static func font() -> Font:
+	if _font_cache == null:
+		_font_cache = make_font()
+	return _font_cache
+
 ## 系统字体（缺字回退用）。Web 环境没有系统字体，只作为桌面端的兜底。
 static func make_system_font() -> SystemFont:
 	var f := SystemFont.new()

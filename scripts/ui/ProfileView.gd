@@ -26,20 +26,31 @@ func refresh() -> void:
 
 func _build() -> void:
 	var vb := UIKit.vbox(12)
-	var root := UIKit.margin(vb, 26, 18, 26, 12)
+	var portrait := UIKit.is_portrait()
+	var root := UIKit.margin(vb, 16, 14, 16, 10) if portrait else UIKit.margin(vb, 26, 18, 26, 12)
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
 
 	var p := GameManager.p
-	var head := UIKit.hbox(12)
-	head.add_child(UIKit.label(p.player_name, 30, UIKit.INK))
-	head.add_child(UIKit.chip("%d 岁" % p.age, UIKit.INK_3, false))
-	head.add_child(UIKit.chip(str(GameManager.identity().get("n", "")), UIKit.CYAN, false))
-	head.add_child(UIKit.chip("Ovr %.1f" % p.ovr(), UIKit.RED, false))
-	head.add_child(UIKit.hfill())
-	if GameManager.phase == GameManager.Phase.RETIRED:
-		head.add_child(UIKit.chip("已退役", UIKit.INK_3, true))
-	vb.add_child(head)
+	if portrait:
+		# 竖屏顶栏已经显示姓名/年龄/阶段，这里只补 Ovr，避免同一屏出现两次「陈默」
+		var ph := UIKit.hbox(8)
+		ph.add_child(UIKit.chip("Ovr %.1f" % p.ovr(), UIKit.RED, false))
+		ph.add_child(UIKit.dim("综合评分", 10))
+		ph.add_child(UIKit.hfill())
+		if GameManager.phase == GameManager.Phase.RETIRED:
+			ph.add_child(UIKit.chip("已退役", UIKit.INK_3, true))
+		vb.add_child(ph)
+	else:
+		var head := UIKit.hbox(12)
+		head.add_child(UIKit.label(p.player_name, 30, UIKit.INK))
+		head.add_child(UIKit.chip("%d 岁" % p.age, UIKit.INK_3, false))
+		head.add_child(UIKit.chip(str(GameManager.identity().get("n", "")), UIKit.CYAN, false))
+		head.add_child(UIKit.chip("Ovr %.1f" % p.ovr(), UIKit.RED, false))
+		head.add_child(UIKit.hfill())
+		if GameManager.phase == GameManager.Phase.RETIRED:
+			head.add_child(UIKit.chip("已退役", UIKit.INK_3, true))
+		vb.add_child(head)
 
 	var tabs := UIKit.hbox(6)
 	var names := ["概览", "器材", "成就"]
@@ -49,7 +60,7 @@ func _build() -> void:
 			tab = idx
 			refresh()
 		)
-		b.custom_minimum_size = Vector2(88, 34)
+		b.custom_minimum_size = Vector2(76, 34) if portrait else Vector2(88, 34)
 		if i == tab:
 			b.add_theme_color_override("font_color", UIKit.INK)
 			var sb := StyleBoxFlat.new()
@@ -60,9 +71,9 @@ func _build() -> void:
 			b.add_theme_color_override("font_color", UIKit.INK_3)
 		tabs.add_child(b)
 	tabs.add_child(UIKit.hfill())
-	if tab == 2:
+	if tab == 2 and not portrait:
 		tabs.add_child(UIKit.dim("已解锁 %d / %d" % [GameManager.achv.count(), GameManager.achv.total()], 12))
-	if tab == 1:
+	if tab == 1 and not portrait:
 		tabs.add_child(UIKit.dim("资金 %s" % DataManager.fmt_money(p.money), 12))
 	vb.add_child(tabs)
 	vb.add_child(UIKit.hsep())
@@ -80,9 +91,30 @@ func _mount(cols: Control) -> void:
 	cols.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_content.add_child(cols)
 
+## 竖屏挂载：内容纵向滚动，横向撑满。桌面端仍走 _mount。
+func _mount_box(box: Control) -> void:
+	if not UIKit.is_portrait():
+		_mount(box)
+		return
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_content.add_child(scroll)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(box)
+
 # ---------------------------------------------------------------- 概览
 
 func _build_overview(p: PlayerStats) -> void:
+	if UIKit.is_portrait():
+		var col := UIKit.vbox(12)
+		_mount_box(col)
+		for part in [_left(p), _mid(p), _right(p)]:
+			var c: Control = part
+			c.custom_minimum_size = Vector2(0, 0)
+			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			col.add_child(c)
+		return
 	var cols := UIKit.hbox(18)
 	_mount(cols)
 	cols.add_child(_left(p))
@@ -97,7 +129,7 @@ func _left(p: PlayerStats) -> Control:
 	var rv := UIKit.vbox(4)
 	rv.add_child(UIKit.label("五维", 12, UIKit.INK_3))
 	var radar := RadarChart.new()
-	radar.custom_minimum_size = Vector2(260, 190)
+	radar.custom_minimum_size = Vector2(320, 236) if UIKit.is_portrait() else Vector2(260, 190)
 	radar.max_value = 124.0
 	radar.set_values(p.radar())
 	rv.add_child(radar)
@@ -250,11 +282,12 @@ func _right(p: PlayerStats) -> Control:
 # ---------------------------------------------------------------- 器材
 
 func _build_gear(p: PlayerStats) -> void:
-	var cols := UIKit.hbox(18)
-	_mount(cols)
+	var vertical := UIKit.is_portrait()
+	var cols: BoxContainer = UIKit.vbox(12) if vertical else UIKit.hbox(18)
+	_mount_box(cols)
 
 	var left := UIKit.vbox(12)
-	left.custom_minimum_size = Vector2(340, 0)
+	left.custom_minimum_size = Vector2(0, 0) if vertical else Vector2(340, 0)
 	var sc := UIKit.panel()
 	var sv := UIKit.vbox(8)
 	var sh := UIKit.hbox(8)
@@ -282,7 +315,8 @@ func _build_gear(p: PlayerStats) -> void:
 	sv.add_child(UIKit.kv("移动加成", "+%.0f" % float(b["mob"]), UIKit.INK_2))
 	sc.add_child(UIKit.margin(sv, 16, 12, 16, 12))
 	left.add_child(sc)
-	left.add_child(UIKit.vfill())
+	if not vertical:
+		left.add_child(UIKit.vfill())
 	cols.add_child(left)
 
 	var right := UIKit.vbox(10)
@@ -290,17 +324,21 @@ func _build_gear(p: PlayerStats) -> void:
 	var head := UIKit.hbox(8)
 	head.add_child(UIKit.label("器材店", 12, UIKit.INK_3))
 	head.add_child(UIKit.hfill())
-	head.add_child(UIKit.dim("按阶段解锁 · 买断制", 10))
+	if not vertical:
+		head.add_child(UIKit.dim("按阶段解锁 · 买断制", 10))
 	right.add_child(head)
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	right.add_child(scroll)
 
 	var list := UIKit.vbox(8)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
+	if vertical:
+		# 竖屏外层已经有一层滚动；内层再嵌 ScrollContainer 会因高度无人分配而塌成 0
+		right.add_child(list)
+	else:
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.add_child(list)
+		right.add_child(scroll)
 
 	var shop := GameManager.gear.shop_list(p)
 	var by_cat := {}
@@ -421,6 +459,9 @@ func _achv_card(a: Dictionary, col: Color) -> Control:
 	vb.add_child(UIKit.wrap(str(a.get("d", "")), 10, UIKit.INK_3))
 	pc.add_child(UIKit.margin(vb, 10, 7, 10, 7))
 	pc.custom_minimum_size = Vector2(0, 54)
+	# 竖屏下让两张卡均分可用宽度，否则整块网格缩在左侧 2/3
+	if UIKit.is_portrait():
+		pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return pc
 
 # ---------------------------------------------------------------- 辅助

@@ -66,7 +66,7 @@ func _draw() -> void:
 
 	# 标签
 	if show_labels:
-		var f := ThemeDB.fallback_font
+		var f := UIKit.font()
 		for i in range(n):
 			var a := ang0 + TAU * float(i) / float(n)
 			var p := center + Vector2(cos(a), sin(a)) * (radius + 18.0)
